@@ -319,11 +319,14 @@
 
 <!-- ═══════════════ VISTA: MES ═══════════════ -->
 <div class="view" id="view-mes">
+
+  <!-- Formulario de ingreso -->
   <div class="card">
-    <div class="card-title">Mes a registrar</div>
+    <div class="card-title">Nueva renta <span class="card-title-badge">→ Notion</span></div>
+
     <div class="field-wrap">
       <div class="field-label">MES</div>
-      <select class="month-pill" id="mes-sel" onchange="recalc()">
+      <select class="month-pill" id="mes-sel" onchange="recalcMes(); cargarRentasMes()">
         <option value="Junio 2026">Junio 2026</option>
         <option value="Julio 2026">Julio 2026</option>
         <option value="Agosto 2026">Agosto 2026</option>
@@ -333,75 +336,54 @@
         <option value="Diciembre 2026">Diciembre 2026</option>
       </select>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Rentas líquidas <span class="card-title-badge">sin descuentos</span></div>
-    <div class="irow">
-      <span class="ilabel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Sueldo / renta fija</span>
-      <input class="iinput" type="number" id="r-fija"  value="0" placeholder="0" oninput="recalc()" />
+
+    <div class="irow" style="margin-top:4px;">
+      <span class="ilabel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        Sueldo / renta fija
+      </span>
+      <input class="iinput" type="number" id="r-fija" value="0" placeholder="0" oninput="recalcMes()" />
     </div>
     <div class="irow">
-      <span class="ilabel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>Freelance / extra</span>
-      <input class="iinput" type="number" id="r-free"  value="0" placeholder="0" oninput="recalc()" />
+      <span class="ilabel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Freelance / extra
+      </span>
+      <input class="iinput" type="number" id="r-free" value="0" placeholder="0" oninput="recalcMes()" />
     </div>
     <div class="irow">
-      <span class="ilabel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Otros ingresos</span>
-      <input class="iinput" type="number" id="r-otros" value="0" placeholder="0" oninput="recalc()" />
+      <span class="ilabel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        Otros ingresos
+      </span>
+      <input class="iinput" type="number" id="r-otros" value="0" placeholder="0" oninput="recalcMes()" />
     </div>
-    <div class="irow-total">
-      <span class="irow-total-label">Total líquido</span>
-      <span class="irow-total-val" id="total-liq">$0</span>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Gastos del mes</div>
-    <div class="irow"><span class="ilabel">🛒 Comida</span>    <input class="iinput" type="number" id="g-comida" value="0" placeholder="0" oninput="recalc()" /></div>
-    <div class="irow"><span class="ilabel">🚌 Transporte</span><input class="iinput" type="number" id="g-trans"  value="0" placeholder="0" oninput="recalc()" /></div>
-    <div class="irow"><span class="ilabel">🎉 Ocio</span>      <input class="iinput" type="number" id="g-ocio"   value="0" placeholder="0" oninput="recalc()" /></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Distribución automática</div>
-    <div class="dist-row">
-      <div class="dist-icon" style="background:#22c55e18;">💰</div>
-      <div class="dist-info">
-        <div class="dist-name">Ahorro <span class="pct-tag" style="background:#22c55e18;color:var(--green);border:1px solid var(--green);">50%</span></div>
-        <div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--green);width:50%" id="db-ahorro"></div></div>
-      </div>
-      <div class="dist-amount" id="da-ahorro" style="color:var(--green);">$0</div>
-    </div>
-    <div class="dist-row">
-      <div class="dist-icon" style="background:#f59e0b18;">🛒</div>
-      <div class="dist-info">
-        <div class="dist-name">Comida <span class="pct-tag" style="background:#f59e0b18;color:var(--amber);border:1px solid var(--amber);" id="pct-comida">0%</span></div>
-        <div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--amber);" id="db-comida"></div></div>
-      </div>
-      <div class="dist-amount" id="da-comida">$0</div>
-    </div>
-    <div class="dist-row">
-      <div class="dist-icon" style="background:#3b82f618;">🚌</div>
-      <div class="dist-info">
-        <div class="dist-name">Transporte <span class="pct-tag" style="background:#3b82f618;color:var(--blue);border:1px solid var(--blue);" id="pct-trans">0%</span></div>
-        <div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--blue);" id="db-trans"></div></div>
-      </div>
-      <div class="dist-amount" id="da-trans">$0</div>
-    </div>
-    <div class="dist-row">
-      <div class="dist-icon" style="background:#a855f718;">🎉</div>
-      <div class="dist-info">
-        <div class="dist-name">Ocio <span class="pct-tag" style="background:#a855f718;color:var(--purple);border:1px solid var(--purple);" id="pct-ocio">0%</span></div>
-        <div class="dist-bar-wrap"><div class="dist-bar" style="background:var(--purple);" id="db-ocio"></div></div>
-      </div>
-      <div class="dist-amount" id="da-ocio">$0</div>
-    </div>
-    <div class="libre-strip" id="libre-strip">
+
+    <!-- Preview ahorro -->
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
       <div>
-        <div class="libre-strip-label">LIBRE DESPUÉS DE TODO</div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--green);margin-top:2px;" id="libre-sub">ingresa tus rentas</div>
+        <div style="font-size:13px;font-weight:600;">Total líquido</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">50% → ahorro <span id="preview-ahorro" style="color:var(--green);">$0</span></div>
       </div>
-      <div class="libre-strip-val" id="libre-val">$0</div>
+      <span style="font-family:var(--mono);font-size:18px;font-weight:500;color:var(--green);" id="total-liq">$0</span>
+    </div>
+
+    <button class="submit-btn green" onclick="guardarMesEnNotion()" id="btn-guardar" style="margin-top:16px;">
+      ↑ Subir renta a Notion
+    </button>
+  </div>
+
+  <!-- Historial de rentas del mes -->
+  <div class="card">
+    <div class="card-title">
+      Rentas subidas este mes
+      <span class="card-title-badge" id="rentas-count">— registros</span>
+    </div>
+    <div id="rentas-lista">
+      <div class="empty-state"><div class="big">📭</div>Selecciona un mes para ver las rentas</div>
     </div>
   </div>
-  <button class="submit-btn green" onclick="guardarMesEnNotion()" id="btn-guardar">↑ Guardar mes en Notion</button>
+
 </div>
 
 <!-- ═══════════════ VISTA: DEUDA ═══════════════ -->
@@ -636,63 +618,111 @@ function toast(msg, ok = true) {
 }
 function mostrarGuardando(v) { document.getElementById('saving-ind').classList.toggle('show', v); }
 
-// ── Recalc (vista mes) ──
-function recalc() {
-  const fija   = +document.getElementById('r-fija').value   || 0;
-  const free   = +document.getElementById('r-free').value   || 0;
-  const otros  = +document.getElementById('r-otros').value  || 0;
-  const comida = +document.getElementById('g-comida').value || 0;
-  const trans  = +document.getElementById('g-trans').value  || 0;
-  const ocio   = +document.getElementById('g-ocio').value   || 0;
-  const total  = fija + free + otros;
-  const ahorro = Math.round(total * 0.5);
-  const libre  = total - ahorro - comida - trans - ocio;
-
-  document.getElementById('total-liq').textContent  = fmt(total);
-  document.getElementById('da-ahorro').textContent  = fmt(ahorro);
-  document.getElementById('da-comida').textContent  = fmt(comida);
-  document.getElementById('da-trans').textContent   = fmt(trans);
-  document.getElementById('da-ocio').textContent    = fmt(ocio);
-  document.getElementById('db-ahorro').style.width  = '50%';
-  document.getElementById('db-comida').style.width  = barW(comida, total);
-  document.getElementById('db-trans').style.width   = barW(trans,  total);
-  document.getElementById('db-ocio').style.width    = barW(ocio,   total);
-  document.getElementById('pct-comida').textContent = pct(comida, total);
-  document.getElementById('pct-trans').textContent  = pct(trans,  total);
-  document.getElementById('pct-ocio').textContent   = pct(ocio,   total);
-
-  const strip = document.getElementById('libre-strip');
-  document.getElementById('libre-val').textContent = fmtS(libre);
-  strip.classList.toggle('neg', libre < 0);
-  document.getElementById('libre-sub').textContent =
-    libre < 0 ? 'gastos superan el 50% restante' : libre > 0 ? 'disponible para lo que quieras' : 'justo al límite';
+// ── Preview renta ──
+function recalcMes() {
+  const total  = (+document.getElementById('r-fija').value  || 0)
+               + (+document.getElementById('r-free').value  || 0)
+               + (+document.getElementById('r-otros').value || 0);
+  document.getElementById('total-liq').textContent      = fmt(total);
+  document.getElementById('preview-ahorro').textContent = fmt(Math.round(total * 0.5));
 }
 
-// ── Guardar mes ──
+// ── Guardar renta ──
 async function guardarMesEnNotion() {
-  const fija   = +document.getElementById('r-fija').value   || 0;
-  const free   = +document.getElementById('r-free').value   || 0;
-  const otros  = +document.getElementById('r-otros').value  || 0;
-  const comida = +document.getElementById('g-comida').value || 0;
-  const trans  = +document.getElementById('g-trans').value  || 0;
-  const ocio   = +document.getElementById('g-ocio').value   || 0;
-  const mes    = mesActual();
-  const btn    = document.getElementById('btn-guardar');
+  const fija  = +document.getElementById('r-fija').value  || 0;
+  const free  = +document.getElementById('r-free').value  || 0;
+  const otros = +document.getElementById('r-otros').value || 0;
+  const mes   = mesActual();
+  if (fija + free + otros === 0) { toast('Ingresa al menos una renta', false); return; }
+
+  const btn = document.getElementById('btn-guardar');
   btn.disabled = true; btn.textContent = 'Guardando…'; mostrarGuardando(true);
   try {
     await crearPagina({
-      'Mes':               { title:     [{ text: { content: mes  } }] },
-      'Renta Fija':        { number:    fija   },
-      'Freelance / Extra': { number:    free   },
-      'Otros Ingresos':    { number:    otros  },
-      'Comida':            { number:    comida },
-      'Transporte':        { number:    trans  },
-      'Ocio':              { number:    ocio   },
+      'Mes':               { title:     [{ text: { content: mes } }] },
+      'Renta Fija':        { number:    fija  },
+      'Freelance / Extra': { number:    free  },
+      'Otros Ingresos':    { number:    otros },
       'Notas':             { rich_text: [{ text: { content: 'Registrado desde dashboard' } }] },
     }, { database_id: DS_MENSUAL });
-    toast(`Mes "${mes}" guardado en Notion ✓`);
-  } catch(e) { toast('Error al guardar el mes', false); }
-  btn.disabled = false; btn.textContent = '↑ Guardar mes en Notion'; mostrarGuardando(false);
+    toast(`Renta de ${fmt(fija + free + otros)} guardada en Notion ✓`);
+    document.getElementById('r-fija').value  = 0;
+    document.getElementById('r-free').value  = 0;
+    document.getElementById('r-otros').value = 0;
+    recalcMes();
+    cargarRentasMes();
+  } catch(e) { toast('Error al guardar en Notion', false); }
+  btn.disabled = false; btn.textContent = '↑ Subir renta a Notion'; mostrarGuardando(false);
+}
+
+// ── Historial de rentas del mes ──
+async function cargarRentasMes() {
+  const mes   = mesActual();
+  const lista = document.getElementById('rentas-lista');
+  const count = document.getElementById('rentas-count');
+  lista.innerHTML = '<div class="empty-state" style="padding:16px 0;"><span class="spin" style="font-size:20px;display:inline-block;">⟳</span></div>';
+  try {
+    const resp  = await consultarDB(DS_MENSUAL, { property: 'Mes', title: { equals: mes } });
+    const pages = resp.results || [];
+    count.textContent = pages.length + ' registro' + (pages.length !== 1 ? 's' : '');
+
+    if (pages.length === 0) {
+      lista.innerHTML = '<div class="empty-state"><div class="big">📭</div>Sin rentas en ' + mes + '</div>';
+      return;
+    }
+
+    lista.innerHTML = '';
+    let totalAcum = 0;
+
+    pages.forEach(page => {
+      const p     = page.properties;
+      const fija  = p['Renta Fija']?.number       || 0;
+      const free  = p['Freelance / Extra']?.number || 0;
+      const otros = p['Otros Ingresos']?.number    || 0;
+      const total = fija + free + otros;
+      totalAcum  += total;
+
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:14px 0;border-bottom:1px solid var(--border);';
+      row.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;">${mes}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">
+              ahorro 50% → <span style="color:var(--green);">${fmt(Math.round(total * 0.5))}</span>
+            </div>
+          </div>
+          <div style="font-family:var(--mono);font-size:17px;font-weight:500;color:var(--green);">${fmt(total)}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          ${mkRentaChip('Sueldo', fija)}
+          ${mkRentaChip('Freelance', free)}
+          ${mkRentaChip('Otros', otros)}
+        </div>
+      `;
+      lista.appendChild(row);
+    });
+
+    if (pages.length > 1) {
+      const footer = document.createElement('div');
+      footer.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding-top:14px;';
+      footer.innerHTML = `
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;">Total acumulado</span>
+        <span style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--green);">${fmt(totalAcum)}</span>
+      `;
+      lista.appendChild(footer);
+    }
+  } catch(e) {
+    lista.innerHTML = '<div class="empty-state"><div class="big">⚠️</div>Error al cargar desde Notion</div>';
+  }
+}
+
+function mkRentaChip(label, monto) {
+  const dim = monto === 0;
+  return `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;${dim ? 'opacity:0.35;' : ''}">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.06em;">${label.toUpperCase()}</div>
+    <div style="font-family:var(--mono);font-size:12px;font-weight:500;margin-top:2px;">${dim ? '—' : fmt(monto)}</div>
+  </div>`;
 }
 
 // ── Sub-tabs deudas ──
@@ -1157,7 +1187,8 @@ async function consultarDB(database_id, filter) {
 renderCats();
 renderDeudas();
 renderGastos();
-recalc();
+recalcMes();
+cargarRentasMes();
 </script>
 </body>
 </html>
