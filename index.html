@@ -920,13 +920,20 @@ const WORKER_URL = 'https://finanzas-worker.martinfigueroaa.workers.dev';
 
 // ── Crear página en Notion via Worker ──
 async function crearPagina(properties, parent) {
+  // Notion API espera { type: 'database_id', database_id: '...' }
+  const notionParent = parent.database_id
+    ? { type: 'database_id', database_id: parent.database_id }
+    : parent;
   const resp = await fetch(WORKER_URL + '/notion/pages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ parent, properties }),
+    body: JSON.stringify({ parent: notionParent, properties }),
   });
   const data = await resp.json();
-  if (!resp.ok) throw new Error(data.message || 'Error Notion');
+  if (!resp.ok) {
+    console.error('Notion error:', data);
+    throw new Error(data.message || JSON.stringify(data) || 'Error Notion');
+  }
   return data;
 }
 
