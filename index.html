@@ -55,75 +55,73 @@
   }
   .logo { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 8px; }
   .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
-  .header-right { display: flex; align-items: center; gap: 10px; }
-  .month-pill {
+  .saving-indicator {
     font-family: var(--mono);
-    font-size: 12px;
-    padding: 6px 14px;
-    border-radius: 99px;
-    border: 1px solid var(--border2);
-    background: var(--surface);
-    color: var(--text);
-    cursor: pointer;
-    appearance: none;
-  }
-  .notion-btn {
-    font-family: var(--sans);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 7px 14px;
-    border-radius: 99px;
-    border: 1px solid var(--green);
-    background: transparent;
-    color: var(--green);
-    cursor: pointer;
-    display: flex;
+    font-size: 10px;
+    color: var(--muted);
+    display: none;
     align-items: center;
-    gap: 6px;
-    transition: background 0.15s;
+    gap: 5px;
   }
-  .notion-btn:hover { background: var(--green-dim); }
-  .notion-btn.saving { opacity: 0.6; cursor: default; }
+  .saving-indicator.show { display: flex; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
 
-  /* HERO STRIP */
-  .hero {
-    padding: 28px 28px 0;
+  /* VISTA SELECTOR */
+  .vista-selector {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    gap: 12px;
+    padding: 32px 28px 0;
+    justify-content: center;
   }
-  .hero-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.08em; text-transform: uppercase; }
-  .hero-value { font-size: 48px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
-  .hero-value.positive { color: var(--green); }
-  .hero-value.negative { color: var(--red); }
-  .hero-value.zero { color: var(--muted); }
-  .hero-badges { display: flex; gap: 8px; padding-bottom: 8px; }
-  .hbadge { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--border2); color: var(--muted); }
-  .hbadge.g { border-color: var(--green); color: var(--green); background: var(--green-dim); }
-  .hbadge.r { border-color: var(--red); color: var(--red); background: var(--red-dim); }
-
-  /* GRID LAYOUT */
-  .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    padding: 20px 28px 28px;
+  .vista-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 24px 32px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(.4,0,.2,1);
+    font-family: var(--sans);
+    min-width: 160px;
+    flex: 1;
+    max-width: 220px;
   }
+  .vista-btn:hover {
+    border-color: var(--border2);
+    color: var(--text);
+    background: var(--surface2);
+  }
+  .vista-btn.active-mes   { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+  .vista-btn.active-deuda { border-color: var(--red);   background: var(--red-dim);   color: var(--red);   }
+  .vista-btn.active-gasto { border-color: var(--blue);  background: var(--blue-dim);  color: var(--blue);  }
+  .vista-icon { font-size: 28px; line-height: 1; }
+  .vista-label { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .vista-sub { font-family: var(--mono); font-size: 10px; opacity: 0.7; }
 
-  /* CARDS */
+  /* VISTAS */
+  .view { display: none; padding: 24px 28px 40px; max-width: 720px; margin: 0 auto; }
+  .view.active { display: block; }
+
+  /* CARD */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 24px;
   }
+  .card + .card { margin-top: 16px; }
   .card-title {
     font-family: var(--mono);
     font-size: 10px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -151,24 +149,14 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 7px 10px;
-    width: 120px;
+    width: 140px;
     text-align: right;
     transition: border-color 0.15s;
   }
   .iinput:focus { outline: none; border-color: var(--border2); }
-  .irow-total { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .irow-total { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
   .irow-total-label { font-size: 12px; font-weight: 600; color: var(--text); }
-  .irow-total-val { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--green); }
-
-  /* DIVIDER */
-  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
-
-  /* METRICS */
-  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .metric { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px; }
-  .metric-lbl { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.06em; }
-  .metric-val { font-size: 20px; font-weight: 700; letter-spacing: -0.03em; }
-  .metric-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .irow-total-val { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--green); }
 
   /* DISTRIBUCIÓN */
   .dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
@@ -181,22 +169,73 @@
   .dist-amount { font-family: var(--mono); font-size: 12px; color: var(--text); text-align: right; min-width: 90px; }
   .pct-tag { font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 99px; }
 
+  /* LIBRE strip */
+  .libre-strip {
+    margin-top: 14px;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--green-dim);
+    border: 1px solid var(--green);
+  }
+  .libre-strip.neg { background: var(--red-dim); border-color: var(--red); }
+  .libre-strip-label { font-family: var(--mono); font-size: 10px; color: var(--green); letter-spacing: 0.06em; }
+  .libre-strip.neg .libre-strip-label { color: var(--red); }
+  .libre-strip-val { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--green); }
+  .libre-strip.neg .libre-strip-val { color: var(--red); }
+
+  /* MES SELECT */
+  .month-pill {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    appearance: none;
+    width: 100%;
+  }
+
+  /* SUBMIT BTN */
+  .submit-btn {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 13px;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: opacity 0.15s;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { opacity: 0.85; }
+  .submit-btn:disabled { opacity: 0.4; cursor: default; }
+  .submit-btn.green { background: var(--green); color: #000; }
+  .submit-btn.red   { background: var(--red);   color: #fff; }
+  .submit-btn.blue  { background: var(--blue);  color: #fff; }
+
   /* DEUDAS */
-  .deuda-item { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 8px; border: 1px solid var(--border); }
+  .deuda-item { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 8px; border: 1px solid var(--border); }
   .deuda-item:last-child { margin-bottom: 0; }
   .deuda-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
   .deuda-name { font-size: 13px; font-weight: 600; }
   .deuda-comment { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 8px; }
-  .deuda-saldo { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .deuda-saldo { font-family: var(--mono); font-size: 15px; font-weight: 500; }
   .deuda-bar-wrap { height: 3px; background: var(--border); border-radius: 99px; margin: 8px 0 4px; }
   .deuda-bar-fill { height: 3px; border-radius: 99px; background: var(--red); transition: width 0.4s; }
   .deuda-footer { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; color: var(--muted); }
-  .abono-row { display: flex; gap: 6px; margin-top: 10px; }
+  .abono-row { display: flex; gap: 6px; margin-top: 12px; }
   .abono-input {
     flex: 1;
     font-family: var(--mono);
-    font-size: 12px;
-    padding: 6px 10px;
+    font-size: 13px;
+    padding: 8px 10px;
     background: var(--bg);
     border: 1px solid var(--border2);
     border-radius: var(--radius-sm);
@@ -206,48 +245,46 @@
   .abono-input:focus { outline: none; border-color: var(--red); }
   .abono-btn {
     font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 16px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--red);
-    background: transparent;
-    color: var(--red);
+    border: none;
+    background: var(--red);
+    color: #fff;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: opacity 0.15s;
     white-space: nowrap;
   }
-  .abono-btn:hover { background: var(--red-dim); }
-  .del-btn { background: none; border: none; cursor: pointer; color: var(--border2); padding: 2px; font-size: 14px; line-height: 1; transition: color 0.15s; }
-  .del-btn:hover { color: var(--red); }
+  .abono-btn:hover { opacity: 0.85; }
   .tag-pagada { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 99px; background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
 
   /* NUEVA DEUDA */
-  .nd-form { background: var(--surface2); border: 1px dashed var(--border2); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 8px; display: none; }
+  .nd-form { background: var(--surface2); border: 1px dashed var(--border2); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 10px; display: none; }
   .nd-form.open { display: block; }
   .nd-label { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.06em; }
   .nd-input {
     width: 100%;
     font-family: var(--mono);
     font-size: 12px;
-    padding: 7px 10px;
+    padding: 8px 10px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .nd-input:focus { outline: none; border-color: var(--border2); }
   .nd-row { display: flex; gap: 8px; margin-top: 4px; }
-  .btn-cancel { font-family: var(--sans); font-size: 11px; font-weight: 600; padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; }
-  .btn-confirm { font-family: var(--sans); font-size: 11px; font-weight: 600; padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--red); background: transparent; color: var(--red); cursor: pointer; flex: 1; transition: background 0.15s; }
-  .btn-confirm:hover { background: var(--red-dim); }
+  .btn-cancel { font-family: var(--sans); font-size: 11px; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: transparent; color: var(--muted); cursor: pointer; }
+  .btn-confirm { font-family: var(--sans); font-size: 11px; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm); border: none; background: var(--red); color: #fff; cursor: pointer; flex: 1; transition: opacity 0.15s; }
+  .btn-confirm:hover { opacity: 0.85; }
   .btn-add {
     width: 100%;
     font-family: var(--sans);
     font-size: 12px;
     font-weight: 600;
-    padding: 9px;
+    padding: 10px;
     border-radius: var(--radius-sm);
     border: 1px dashed var(--border2);
     background: transparent;
@@ -258,8 +295,11 @@
     justify-content: center;
     gap: 6px;
     transition: all 0.15s;
+    margin-top: 10px;
   }
   .btn-add:hover { border-color: var(--text); color: var(--text); }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--border2); padding: 2px; font-size: 14px; line-height: 1; transition: color 0.15s; }
+  .del-btn:hover { color: var(--red); }
 
   /* GASTO FORM */
   .gasto-form { display: flex; flex-direction: column; gap: 10px; }
@@ -277,15 +317,15 @@
   }
   .cat-btn:hover { border-color: var(--border2); color: var(--text); }
   .cat-btn.active { border-color: var(--accent); color: var(--accent); background: var(--green-dim); }
-  .cat-btn.active[data-color="red"] { border-color: var(--red); color: var(--red); background: var(--red-dim); }
-  .cat-btn.active[data-color="amber"] { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
-  .cat-btn.active[data-color="blue"] { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
-  .cat-btn.active[data-color="purple"] { border-color: var(--purple); color: var(--purple); background: #a855f720; }
+  .cat-btn.active[data-color="red"]    { border-color: var(--red);    color: var(--red);    background: var(--red-dim);    }
+  .cat-btn.active[data-color="amber"]  { border-color: var(--amber);  color: var(--amber);  background: var(--amber-dim);  }
+  .cat-btn.active[data-color="blue"]   { border-color: var(--blue);   color: var(--blue);   background: var(--blue-dim);   }
+  .cat-btn.active[data-color="purple"] { border-color: var(--purple); color: var(--purple); background: #a855f720;         }
   .gasto-row { display: flex; gap: 8px; }
   .gasto-input {
     font-family: var(--mono);
     font-size: 13px;
-    padding: 9px 12px;
+    padding: 10px 12px;
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -294,23 +334,7 @@
     transition: border-color 0.15s;
   }
   .gasto-input:focus { outline: none; border-color: var(--border2); }
-  .gasto-input.monto { text-align: right; width: 130px; flex-shrink: 0; }
-  .gasto-save {
-    font-family: var(--sans);
-    font-size: 13px;
-    font-weight: 700;
-    padding: 10px;
-    border-radius: var(--radius-sm);
-    border: none;
-    background: var(--green);
-    color: #000;
-    cursor: pointer;
-    width: 100%;
-    letter-spacing: -0.01em;
-    transition: opacity 0.15s;
-  }
-  .gasto-save:hover { opacity: 0.85; }
-  .gasto-save:disabled { opacity: 0.4; cursor: default; }
+  .gasto-input.monto { text-align: right; width: 140px; flex-shrink: 0; }
 
   /* GASTOS RECIENTES */
   .gasto-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
@@ -345,42 +369,15 @@
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-  /* LIBRE strip */
-  .libre-strip {
-    margin-top: 14px;
-    border-radius: var(--radius-sm);
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--green-dim);
-    border: 1px solid var(--green);
-  }
-  .libre-strip.neg { background: var(--red-dim); border-color: var(--red); }
-  .libre-strip-label { font-family: var(--mono); font-size: 10px; color: var(--green); letter-spacing: 0.06em; }
-  .libre-strip.neg .libre-strip-label { color: var(--red); }
-  .libre-strip-val { font-family: var(--mono); font-size: 16px; font-weight: 500; color: var(--green); }
-  .libre-strip.neg .libre-strip-val { color: var(--red); }
-
   /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 
-  /* FULL WIDTH CARD */
-  .col-full { grid-column: 1 / -1; }
-
-  .saving-indicator {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    display: none;
-    align-items: center;
-    gap: 5px;
-  }
-  .saving-indicator.show { display: flex; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  /* FIELD LABEL */
+  .field-label { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 6px; }
+  .field-wrap { margin-bottom: 14px; }
+  .field-wrap:last-child { margin-bottom: 0; }
 </style>
 </head>
 <body>
@@ -390,38 +387,47 @@
     <span class="logo-dot"></span>
     Finanzas Personales
   </div>
-  <div class="header-right">
-    <span class="saving-indicator" id="saving-ind"><span class="spin">⟳</span> Guardando en Notion…</span>
-    <select class="month-pill" id="mes-sel" onchange="cambiarMes()">
-      <option value="Junio 2026">Junio 2026</option>
-      <option value="Julio 2026">Julio 2026</option>
-      <option value="Agosto 2026">Agosto 2026</option>
-      <option value="Septiembre 2026">Sep 2026</option>
-      <option value="Octubre 2026">Oct 2026</option>
-      <option value="Noviembre 2026">Nov 2026</option>
-      <option value="Diciembre 2026">Dic 2026</option>
-    </select>
-    <button class="notion-btn" onclick="guardarMesEnNotion()" id="btn-guardar">
-      ↑ Guardar mes en Notion
-    </button>
-  </div>
+  <span class="saving-indicator" id="saving-ind"><span class="spin">⟳</span> Guardando en Notion…</span>
 </div>
 
-<div class="hero">
-  <div>
-    <div class="hero-label">Dinero libre este mes</div>
-    <div class="hero-value zero" id="hero-val">$0</div>
-  </div>
-  <div class="hero-badges">
-    <div class="hbadge g" id="badge-ahorro">Ahorro $0</div>
-    <div class="hbadge r" id="badge-deuda">Deuda $0</div>
-    <div class="hbadge" id="badge-gastos">Gastos $0</div>
-  </div>
+<!-- SELECTOR DE VISTA -->
+<div class="vista-selector">
+  <button class="vista-btn" id="btn-v-mes" onclick="setVista('mes')">
+    <span class="vista-icon">📅</span>
+    <span class="vista-label">Subir mes</span>
+    <span class="vista-sub">rentas y gastos fijos</span>
+  </button>
+  <button class="vista-btn" id="btn-v-deuda" onclick="setVista('deuda')">
+    <span class="vista-icon">💳</span>
+    <span class="vista-label">Abonar deuda</span>
+    <span class="vista-sub">registrar pago</span>
+  </button>
+  <button class="vista-btn" id="btn-v-gasto" onclick="setVista('gasto')">
+    <span class="vista-icon">🧾</span>
+    <span class="vista-label">Subir gasto</span>
+    <span class="vista-sub">gasto puntual</span>
+  </button>
 </div>
 
-<div class="grid">
+<!-- ═══════════════════════════════ VISTA: MES ═══════════════════════════════ -->
+<div class="view" id="view-mes">
 
-  <!-- RENTAS -->
+  <div class="card">
+    <div class="card-title">Mes a registrar</div>
+    <div class="field-wrap">
+      <div class="field-label">MES</div>
+      <select class="month-pill" id="mes-sel" onchange="recalc()">
+        <option value="Junio 2026">Junio 2026</option>
+        <option value="Julio 2026">Julio 2026</option>
+        <option value="Agosto 2026">Agosto 2026</option>
+        <option value="Septiembre 2026">Septiembre 2026</option>
+        <option value="Octubre 2026">Octubre 2026</option>
+        <option value="Noviembre 2026">Noviembre 2026</option>
+        <option value="Diciembre 2026">Diciembre 2026</option>
+      </select>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">Rentas líquidas <span class="card-title-badge">sin descuentos</span></div>
     <div class="irow">
@@ -451,7 +457,22 @@
     </div>
   </div>
 
-  <!-- DISTRIBUCIÓN -->
+  <div class="card">
+    <div class="card-title">Gastos del mes</div>
+    <div class="irow">
+      <span class="ilabel">🛒 Comida</span>
+      <input class="iinput" type="number" id="g-comida" value="0" placeholder="0" oninput="recalc()" />
+    </div>
+    <div class="irow">
+      <span class="ilabel">🚌 Transporte</span>
+      <input class="iinput" type="number" id="g-trans" value="0" placeholder="0" oninput="recalc()" />
+    </div>
+    <div class="irow">
+      <span class="ilabel">🎉 Ocio</span>
+      <input class="iinput" type="number" id="g-ocio" value="0" placeholder="0" oninput="recalc()" />
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">Distribución automática</div>
     <div class="dist-row">
@@ -495,53 +516,17 @@
     </div>
   </div>
 
-  <!-- GASTOS MES -->
-  <div class="card">
-    <div class="card-title">Gastos del mes</div>
-    <div class="irow">
-      <span class="ilabel">🛒 Comida</span>
-      <input class="iinput" type="number" id="g-comida" value="0" placeholder="0" oninput="recalc()" />
-    </div>
-    <div class="irow">
-      <span class="ilabel">🚌 Transporte</span>
-      <input class="iinput" type="number" id="g-trans" value="0" placeholder="0" oninput="recalc()" />
-    </div>
-    <div class="irow">
-      <span class="ilabel">🎉 Ocio</span>
-      <input class="iinput" type="number" id="g-ocio" value="0" placeholder="0" oninput="recalc()" />
-    </div>
-  </div>
+  <button class="submit-btn green" onclick="guardarMesEnNotion()" id="btn-guardar">
+    ↑ Guardar mes en Notion
+  </button>
 
-  <!-- RESUMEN MÉTRICAS -->
-  <div class="card">
-    <div class="card-title">Resumen</div>
-    <div class="metrics-grid">
-      <div class="metric">
-        <div class="metric-lbl">TOTAL LÍQUIDO</div>
-        <div class="metric-val" id="m-total">$0</div>
-        <div class="metric-sub">este mes</div>
-      </div>
-      <div class="metric">
-        <div class="metric-lbl">AHORRO DEL MES</div>
-        <div class="metric-val" style="color:var(--green)" id="m-ahorro">$0</div>
-        <div class="metric-sub">50% asegurado</div>
-      </div>
-      <div class="metric">
-        <div class="metric-lbl">TOTAL DEUDA</div>
-        <div class="metric-val" style="color:var(--red)" id="m-deuda">$0</div>
-        <div class="metric-sub" id="m-deuda-sub">saldo pendiente</div>
-      </div>
-      <div class="metric">
-        <div class="metric-lbl">Nº DEUDAS</div>
-        <div class="metric-val" id="m-ndeudas">0</div>
-        <div class="metric-sub" id="m-ndeudas-sub">0 activas</div>
-      </div>
-    </div>
-  </div>
+</div>
 
-  <!-- DEUDAS -->
-  <div class="card col-full">
-    <div class="card-title">Deudas <span class="card-title-badge" id="deuda-total-badge">Total $0</span></div>
+<!-- ═══════════════════════════════ VISTA: DEUDA ═════════════════════════════ -->
+<div class="view" id="view-deuda">
+
+  <div class="card">
+    <div class="card-title">Deudas activas <span class="card-title-badge" id="deuda-total-badge">Total $0</span></div>
     <div id="lista-deudas"></div>
     <div class="nd-form" id="nd-form">
       <div class="nd-label">NOMBRE</div>
@@ -555,26 +540,39 @@
         <button class="btn-confirm" onclick="agregarDeuda()">+ Agregar deuda</button>
       </div>
     </div>
-    <button class="btn-add" id="btn-add-deuda" onclick="abrirND()">+ Agregar deuda</button>
+    <button class="btn-add" id="btn-add-deuda" onclick="abrirND()">+ Nueva deuda</button>
   </div>
 
-  <!-- REGISTRAR GASTO -->
+</div>
+
+<!-- ═══════════════════════════════ VISTA: GASTO ═════════════════════════════ -->
+<div class="view" id="view-gasto">
+
   <div class="card">
     <div class="card-title">Registrar gasto <span class="card-title-badge">→ Notion</span></div>
     <div class="gasto-form">
-      <div class="gasto-cats" id="cats-wrap"></div>
-      <div class="gasto-row">
-        <input class="gasto-input" type="text" id="g-nombre" placeholder="Nombre del gasto…" />
-        <input class="gasto-input monto" type="number" id="g-monto" placeholder="$0" />
+      <div class="field-wrap">
+        <div class="field-label">CATEGORÍA</div>
+        <div class="gasto-cats" id="cats-wrap"></div>
       </div>
-      <input class="gasto-input" type="text" id="g-comentario" placeholder="Comentario (opcional)…" />
-      <button class="gasto-save" onclick="registrarGasto()" id="btn-gasto">
+      <div class="field-wrap">
+        <div class="field-label">NOMBRE DEL GASTO</div>
+        <input class="gasto-input" type="text" id="g-nombre" placeholder="ej: Almuerzo La Vega…" />
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">MONTO</div>
+        <input class="gasto-input" type="number" id="g-monto" placeholder="$0" style="text-align:right;" />
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">COMENTARIO (OPCIONAL)</div>
+        <input class="gasto-input" type="text" id="g-comentario" placeholder="Detalle adicional…" />
+      </div>
+      <button class="submit-btn blue" onclick="registrarGasto()" id="btn-gasto">
         Guardar gasto en Notion ↑
       </button>
     </div>
   </div>
 
-  <!-- GASTOS RECIENTES -->
   <div class="card">
     <div class="card-title">Gastos recientes <span class="card-title-badge" id="gastos-count">0 registros</span></div>
     <div id="gastos-recientes">
@@ -590,13 +588,11 @@
 </div>
 
 <script>
-// ── IDs de tus bases de datos en Notion ──
 const DS_MENSUAL  = '8532f8c4-d3f2-45f4-9e0d-ac19158ae83f';
 const DS_DEUDAS   = 'feca9282-283e-4324-9d7b-68fba6f05cce';
 const DS_GASTOS   = '970d4c5f-b865-45ce-b5ba-20bf2883cd98';
-const NOTION_PAGE = 'https://www.notion.so/372b28b9dc2f816793b8da83734d620d';
+const WORKER_URL  = 'https://finanzas-worker.martinfigueroaa.workers.dev';
 
-// ── Estado ──
 let deudas = [
   { id: 1, nombre: 'Deuda inicial', comentario: 'Deuda original', inicial: 140000, saldo: 140000, historial: [] }
 ];
@@ -606,64 +602,57 @@ let catActiva = null;
 const mesActual = () => document.getElementById('mes-sel').value;
 
 const CATS = [
-  { key: '🛒 Comida',                  color: 'green' },
-  { key: '🚌 Transporte',              color: 'blue'  },
-  { key: '🎉 Ocio',                    color: 'purple'},
-  { key: '🏥 Salud',                   color: 'red'   },
-  { key: '🎓 Educación',               color: 'amber' },
-  { key: '🛍️ Ropa / Personal',        color: 'amber' },
-  { key: '🔧 Servicios / Suscripciones', color: 'blue'},
-  { key: '🆘 Emergencia',              color: 'red'   },
-  { key: '💳 Abono Deuda',             color: 'red'   },
-  { key: '📦 Otros',                   color: 'green' },
+  { key: '🛒 Comida',                    color: 'green'  },
+  { key: '🚌 Transporte',                color: 'blue'   },
+  { key: '🎉 Ocio',                      color: 'purple' },
+  { key: '🏥 Salud',                     color: 'red'    },
+  { key: '🎓 Educación',                 color: 'amber'  },
+  { key: '🛍️ Ropa / Personal',          color: 'amber'  },
+  { key: '🔧 Servicios / Suscripciones', color: 'blue'   },
+  { key: '🆘 Emergencia',                color: 'red'    },
+  { key: '💳 Abono Deuda',               color: 'red'    },
+  { key: '📦 Otros',                     color: 'green'  },
 ];
 const CAT_COLORS = { green: '#22c55e', blue: '#3b82f6', purple: '#a855f7', red: '#ef4444', amber: '#f59e0b' };
 
-// ── Formatear ──
-const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
-const pct = (p, t) => t === 0 ? '0%' : Math.round((p / t) * 100) + '%';
+const fmt  = n => '$' + Math.round(n).toLocaleString('es-CL');
+const pct  = (p, t) => t === 0 ? '0%' : Math.round((p / t) * 100) + '%';
 const barW = (p, t) => t === 0 ? '0%' : Math.min(100, Math.round((p / t) * 100)) + '%';
+
+// ── Vista ──
+function setVista(v) {
+  ['mes', 'deuda', 'gasto'].forEach(k => {
+    document.getElementById('view-' + k).classList.toggle('active', k === v);
+    const btn = document.getElementById('btn-v-' + k);
+    btn.className = 'vista-btn' + (k === v ? ' active-' + k : '');
+  });
+}
 
 // ── Toast ──
 function toast(msg, ok = true) {
   const t = document.getElementById('toast');
-  const d = document.getElementById('toast-dot');
   document.getElementById('toast-msg').textContent = msg;
-  d.style.background = ok ? '#22c55e' : '#ef4444';
+  document.getElementById('toast-dot').style.background = ok ? '#22c55e' : '#ef4444';
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ── Recalc ──
+function mostrarGuardando(v) { document.getElementById('saving-ind').classList.toggle('show', v); }
+
+// ── Recalc (vista mes) ──
 function recalc() {
-  const fija  = +document.getElementById('r-fija').value  || 0;
-  const free  = +document.getElementById('r-free').value  || 0;
-  const otros = +document.getElementById('r-otros').value || 0;
+  const fija   = +document.getElementById('r-fija').value   || 0;
+  const free   = +document.getElementById('r-free').value   || 0;
+  const otros  = +document.getElementById('r-otros').value  || 0;
   const comida = +document.getElementById('g-comida').value || 0;
   const trans  = +document.getElementById('g-trans').value  || 0;
   const ocio   = +document.getElementById('g-ocio').value   || 0;
   const total  = fija + free + otros;
   const ahorro = Math.round(total * 0.5);
   const tGastos = comida + trans + ocio;
-  const tDeuda  = deudas.reduce((s, d) => s + Math.max(0, d.saldo), 0);
   const libre   = total - ahorro - tGastos;
 
-  // Hero
-  const hv = document.getElementById('hero-val');
-  hv.textContent = fmt(libre);
-  hv.className = 'hero-value ' + (libre > 0 ? 'positive' : libre < 0 ? 'negative' : 'zero');
-
-  document.getElementById('badge-ahorro').textContent = 'Ahorro ' + fmt(ahorro);
-  document.getElementById('badge-deuda').textContent  = 'Deuda '  + fmt(tDeuda);
-  document.getElementById('badge-gastos').textContent = 'Gastos ' + fmt(tGastos);
-
-  // Totales
   document.getElementById('total-liq').textContent = fmt(total);
-  document.getElementById('m-total').textContent   = fmt(total);
-  document.getElementById('m-ahorro').textContent  = fmt(ahorro);
-  document.getElementById('m-deuda').textContent   = fmt(tDeuda);
-
-  // Distribución
   document.getElementById('da-ahorro').textContent = fmt(ahorro);
   document.getElementById('da-comida').textContent = fmt(comida);
   document.getElementById('da-trans').textContent  = fmt(trans);
@@ -676,30 +665,64 @@ function recalc() {
   document.getElementById('pct-trans').textContent  = pct(trans,  total);
   document.getElementById('pct-ocio').textContent   = pct(ocio,   total);
 
-  // Libre strip
   const strip = document.getElementById('libre-strip');
   const lv    = document.getElementById('libre-val');
   const ls    = document.getElementById('libre-sub');
   lv.textContent = fmt(libre);
   strip.classList.toggle('neg', libre < 0);
   ls.textContent = libre < 0 ? 'gastos superan el 50% restante' : libre > 0 ? 'disponible para lo que quieras' : 'justo al límite';
+}
 
-  // Deudas
-  const activas = deudas.filter(d => d.saldo > 0).length;
-  document.getElementById('m-ndeudas').textContent    = deudas.length;
-  document.getElementById('m-ndeudas-sub').textContent = activas + ' activa' + (activas !== 1 ? 's' : '');
-  document.getElementById('m-deuda-sub').textContent   = activas + ' pendiente' + (activas !== 1 ? 's' : '');
-  document.getElementById('deuda-total-badge').textContent = 'Total ' + fmt(tDeuda);
+// ── Guardar mes ──
+async function guardarMesEnNotion() {
+  const fija   = +document.getElementById('r-fija').value   || 0;
+  const free   = +document.getElementById('r-free').value   || 0;
+  const otros  = +document.getElementById('r-otros').value  || 0;
+  const comida = +document.getElementById('g-comida').value || 0;
+  const trans  = +document.getElementById('g-trans').value  || 0;
+  const ocio   = +document.getElementById('g-ocio').value   || 0;
+  const mes    = mesActual();
+
+  const btn = document.getElementById('btn-guardar');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+  mostrarGuardando(true);
+  try {
+    await crearPagina({
+      'Mes':               { title: [{ text: { content: mes } }] },
+      'Renta Fija':        { number: fija },
+      'Freelance / Extra': { number: free },
+      'Otros Ingresos':    { number: otros },
+      'Comida':            { number: comida },
+      'Transporte':        { number: trans },
+      'Ocio':              { number: ocio },
+      'Notas':             { rich_text: [{ text: { content: 'Registrado desde dashboard' } }] },
+    }, { database_id: DS_MENSUAL });
+    toast(`Mes "${mes}" guardado en Notion ✓`);
+  } catch(e) {
+    toast('Error al guardar el mes', false);
+  }
+  btn.disabled = false;
+  btn.textContent = '↑ Guardar mes en Notion';
+  mostrarGuardando(false);
 }
 
 // ── Render deudas ──
 function renderDeudas() {
   const el = document.getElementById('lista-deudas');
   el.innerHTML = '';
+  const tDeuda = deudas.reduce((s, d) => s + Math.max(0, d.saldo), 0);
+  document.getElementById('deuda-total-badge').textContent = 'Total ' + fmt(tDeuda);
+
+  if (deudas.length === 0) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;padding:20px 0;">Sin deudas registradas</div>';
+    return;
+  }
+
   deudas.forEach(d => {
-    const pagado  = d.inicial - d.saldo;
-    const pctP    = d.inicial > 0 ? Math.round((pagado / d.inicial) * 100) : 100;
-    const pagada  = d.saldo <= 0;
+    const pagado = d.inicial - d.saldo;
+    const pctP   = d.inicial > 0 ? Math.round((pagado / d.inicial) * 100) : 100;
+    const pagada = d.saldo <= 0;
     const div = document.createElement('div');
     div.className = 'deuda-item';
     div.innerHTML = `
@@ -719,39 +742,40 @@ function renderDeudas() {
       <div class="deuda-bar-wrap"><div class="deuda-bar-fill" style="width:${Math.max(0, 100 - pctP)}%;"></div></div>
       <div class="deuda-footer"><span>${pctP}% pagado</span><span>${d.historial.length} abono${d.historial.length !== 1 ? 's' : ''}</span></div>
       ${!pagada ? `<div class="abono-row">
-        <input class="abono-input" type="number" id="ab-${d.id}" placeholder="Abono este mes…" />
-        <button class="abono-btn" onclick="registrarAbono(${d.id})">Abonar ↑ Notion</button>
+        <input class="abono-input" type="number" id="ab-${d.id}" placeholder="Monto del abono…" />
+        <button class="abono-btn" onclick="registrarAbono(${d.id})">Abonar ↑</button>
       </div>` : ''}
     `;
     el.appendChild(div);
   });
-  recalc();
 }
 
 async function registrarAbono(id) {
   const d = deudas.find(x => x.id === id);
   if (!d) return;
-  const inp = document.getElementById('ab-' + id);
+  const inp   = document.getElementById('ab-' + id);
   const monto = +inp.value || 0;
-  if (monto <= 0 || monto > d.saldo) { inp.style.borderColor = 'var(--red)'; setTimeout(() => inp.style.borderColor = '', 1500); return; }
+  if (monto <= 0 || monto > d.saldo) {
+    inp.style.borderColor = 'var(--red)';
+    setTimeout(() => inp.style.borderColor = '', 1500);
+    return;
+  }
   d.saldo -= monto;
   const mes = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const now = new Date();
   d.historial.push({ mes: mes[now.getMonth()] + ' ' + now.getFullYear(), monto, saldo: d.saldo });
   inp.value = '';
-
-  // Registrar en Notion como gasto + actualizar saldo (simulado con nuevo gasto)
   mostrarGuardando(true);
   try {
     await crearPagina({
       'Gasto':     { title: [{ text: { content: `Abono: ${d.nombre}` } }] },
       'Monto':     { number: monto },
       'Categoría': { select: { name: '💳 Abono Deuda' } },
-      'Comentario':{ rich_text: [{ text: { content: `Abono a deuda "${d.nombre}" — saldo restante: ${fmt(d.saldo)}` } }] },
+      'Comentario':{ rich_text: [{ text: { content: `Abono a "${d.nombre}" — saldo restante: ${fmt(d.saldo)}` } }] },
       'Mes':       { rich_text: [{ text: { content: mesActual() } }] },
       'Fecha':     { date: { start: new Date().toISOString().split('T')[0] } },
     }, { database_id: DS_GASTOS });
-    toast(`Abono de ${fmt(monto)} a "${d.nombre}" guardado en Notion ✓`);
+    toast(`Abono de ${fmt(monto)} a "${d.nombre}" guardado ✓`);
     gastosLocales.unshift({ nombre: `Abono: ${d.nombre}`, monto, cat: '💳 Abono Deuda', comentario: `Saldo restante: ${fmt(d.saldo)}`, color: 'red' });
     renderGastos();
   } catch(e) {
@@ -762,18 +786,20 @@ async function registrarAbono(id) {
 }
 
 function eliminarDeuda(id) { deudas = deudas.filter(x => x.id !== id); renderDeudas(); }
-
-function abrirND() { document.getElementById('nd-form').classList.add('open'); document.getElementById('btn-add-deuda').style.display = 'none'; }
-function cerrarND() { document.getElementById('nd-form').classList.remove('open'); document.getElementById('btn-add-deuda').style.display = 'flex'; document.getElementById('nd-nombre').value = ''; document.getElementById('nd-comentario').value = ''; document.getElementById('nd-monto').value = ''; }
+function abrirND()  { document.getElementById('nd-form').classList.add('open'); document.getElementById('btn-add-deuda').style.display = 'none'; }
+function cerrarND() {
+  document.getElementById('nd-form').classList.remove('open');
+  document.getElementById('btn-add-deuda').style.display = 'flex';
+  ['nd-nombre','nd-comentario','nd-monto'].forEach(id => document.getElementById(id).value = '');
+}
 
 async function agregarDeuda() {
-  const nombre    = document.getElementById('nd-nombre').value.trim();
+  const nombre     = document.getElementById('nd-nombre').value.trim();
   const comentario = document.getElementById('nd-comentario').value.trim() || 'Sin descripción';
-  const monto     = +document.getElementById('nd-monto').value || 0;
+  const monto      = +document.getElementById('nd-monto').value || 0;
   if (!nombre || monto <= 0) { toast('Completa nombre y monto', false); return; }
   deudas.push({ id: nextId++, nombre, comentario, inicial: monto, saldo: monto, historial: [] });
   cerrarND();
-
   mostrarGuardando(true);
   try {
     await crearPagina({
@@ -813,8 +839,8 @@ function renderCats() {
 
 // ── Registrar gasto ──
 async function registrarGasto() {
-  const nombre    = document.getElementById('g-nombre').value.trim();
-  const monto     = +document.getElementById('g-monto').value || 0;
+  const nombre     = document.getElementById('g-nombre').value.trim();
+  const monto      = +document.getElementById('g-monto').value || 0;
   const comentario = document.getElementById('g-comentario').value.trim();
   if (!nombre)    { toast('Ingresa el nombre del gasto', false); return; }
   if (!catActiva) { toast('Selecciona una categoría', false); return; }
@@ -824,7 +850,6 @@ async function registrarGasto() {
   btn.disabled = true;
   btn.textContent = 'Guardando…';
   mostrarGuardando(true);
-
   try {
     await crearPagina({
       'Gasto':     { title: [{ text: { content: nombre } }] },
@@ -845,7 +870,6 @@ async function registrarGasto() {
   } catch(e) {
     toast('Error al guardar en Notion', false);
   }
-
   btn.disabled = false;
   btn.textContent = 'Guardar gasto en Notion ↑';
   mostrarGuardando(false);
@@ -875,52 +899,8 @@ function renderGastos() {
   });
 }
 
-// ── Guardar mes ──
-async function guardarMesEnNotion() {
-  const fija   = +document.getElementById('r-fija').value  || 0;
-  const free   = +document.getElementById('r-free').value  || 0;
-  const otros  = +document.getElementById('r-otros').value || 0;
-  const comida = +document.getElementById('g-comida').value || 0;
-  const trans  = +document.getElementById('g-trans').value  || 0;
-  const ocio   = +document.getElementById('g-ocio').value   || 0;
-  const mes    = mesActual();
-
-  const btn = document.getElementById('btn-guardar');
-  btn.classList.add('saving');
-  btn.textContent = 'Guardando…';
-  mostrarGuardando(true);
-
-  try {
-    await crearPagina({
-      'Mes':                { title: [{ text: { content: mes } }] },
-      'Renta Fija':         { number: fija },
-      'Freelance / Extra':  { number: free },
-      'Otros Ingresos':     { number: otros },
-      'Comida':             { number: comida },
-      'Transporte':         { number: trans },
-      'Ocio':               { number: ocio },
-      'Notas':              { rich_text: [{ text: { content: 'Registrado desde dashboard' } }] },
-    }, { database_id: DS_MENSUAL });
-    toast(`Mes "${mes}" guardado en Notion ✓`);
-  } catch(e) {
-    toast('Error al guardar el mes', false);
-  }
-
-  btn.classList.remove('saving');
-  btn.textContent = '↑ Guardar mes en Notion';
-  mostrarGuardando(false);
-}
-
-function cambiarMes() { recalc(); }
-function mostrarGuardando(v) { document.getElementById('saving-ind').classList.toggle('show', v); }
-
-
-const WORKER_URL = 'https://finanzas-worker.martinfigueroaa.workers.dev';
-
-
-// ── Crear página en Notion via Worker ──
+// ── Notion API ──
 async function crearPagina(properties, parent) {
-  // Notion API espera { type: 'database_id', database_id: '...' }
   const notionParent = parent.database_id
     ? { type: 'database_id', database_id: parent.database_id }
     : parent;
@@ -930,14 +910,10 @@ async function crearPagina(properties, parent) {
     body: JSON.stringify({ parent: notionParent, properties }),
   });
   const data = await resp.json();
-  if (!resp.ok) {
-    console.error('Notion error:', data);
-    throw new Error(data.message || JSON.stringify(data) || 'Error Notion');
-  }
+  if (!resp.ok) { console.error('Notion error:', data); throw new Error(data.message || 'Error Notion'); }
   return data;
 }
 
-// ── Consultar base de datos de Notion via Worker ──
 async function consultarDB(database_id, filter) {
   const resp = await fetch(WORKER_URL + '/notion/query', {
     method: 'POST',
