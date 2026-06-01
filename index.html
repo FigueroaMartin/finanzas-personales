@@ -655,7 +655,7 @@ async function guardarMesEnNotion() {
   btn.disabled = false; btn.textContent = '↑ Subir renta a Notion'; mostrarGuardando(false);
 }
 
-// ── Historial de rentas del mes ──
+// ── Historial de rentas del mes (sumado) ──
 async function cargarRentasMes() {
   const mes   = mesActual();
   const lista = document.getElementById('rentas-lista');
@@ -671,57 +671,87 @@ async function cargarRentasMes() {
       return;
     }
 
-    lista.innerHTML = '';
-    let totalAcum = 0;
-
+    // Sumar todos los registros del mes
+    let totalFija = 0, totalFree = 0, totalOtros = 0;
     pages.forEach(page => {
-      const p     = page.properties;
-      const fija  = p['Renta Fija']?.number       || 0;
-      const free  = p['Freelance / Extra']?.number || 0;
-      const otros = p['Otros Ingresos']?.number    || 0;
-      const total = fija + free + otros;
-      totalAcum  += total;
-
-      const row = document.createElement('div');
-      row.style.cssText = 'padding:14px 0;border-bottom:1px solid var(--border);';
-      row.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div>
-            <div style="font-size:13px;font-weight:700;">${mes}</div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">
-              ahorro 50% → <span style="color:var(--green);">${fmt(Math.round(total * 0.5))}</span>
-            </div>
-          </div>
-          <div style="font-family:var(--mono);font-size:17px;font-weight:500;color:var(--green);">${fmt(total)}</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-          ${mkRentaChip('Sueldo', fija)}
-          ${mkRentaChip('Freelance', free)}
-          ${mkRentaChip('Otros', otros)}
-        </div>
-      `;
-      lista.appendChild(row);
+      const p = page.properties;
+      totalFija  += p['Renta Fija']?.number       || 0;
+      totalFree  += p['Freelance / Extra']?.number || 0;
+      totalOtros += p['Otros Ingresos']?.number    || 0;
     });
+    const totalMes = totalFija + totalFree + totalOtros;
+    const ahorro   = Math.round(totalMes * 0.5);
+    const libre    = totalMes - ahorro;
 
+    lista.innerHTML = `
+      <!-- Total hero -->
+      <div style="text-align:center;padding:20px 0 16px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Total líquido · ${mes}</div>
+        <div style="font-size:40px;font-weight:800;letter-spacing:-0.04em;color:var(--green);line-height:1;">${fmt(totalMes)}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;">${pages.length} ingreso${pages.length!==1?'s':''} sumado${pages.length!==1?'s':''}</div>
+      </div>
+
+      <!-- Barra de distribución -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div style="background:var(--green-dim);border:1px solid var(--green);border-radius:var(--radius-sm);padding:14px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:0.08em;">AHORRO · 50%</div>
+          <div style="font-family:var(--mono);font-size:18px;font-weight:500;color:var(--green);margin-top:4px;">${fmt(ahorro)}</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.08em;">DISPONIBLE · 50%</div>
+          <div style="font-family:var(--mono);font-size:18px;font-weight:500;margin-top:4px;">${fmt(libre)}</div>
+        </div>
+      </div>
+
+      <!-- Desglose por tipo -->
+      <div style="border-top:1px solid var(--border);padding-top:14px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Desglose</div>
+        ${mkRentaFila('Sueldo / Renta fija', totalFija, totalMes)}
+        ${mkRentaFila('Freelance / Extra', totalFree, totalMes)}
+        ${mkRentaFila('Otros ingresos', totalOtros, totalMes)}
+      </div>
+    `;
+
+    // Si hay más de un registro mostrar detalle colapsable
     if (pages.length > 1) {
-      const footer = document.createElement('div');
-      footer.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding-top:14px;';
-      footer.innerHTML = `
-        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;">Total acumulado</span>
-        <span style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--green);">${fmt(totalAcum)}</span>
+      const detalleWrap = document.createElement('div');
+      detalleWrap.style.cssText = 'border-top:1px solid var(--border);padding-top:14px;margin-top:14px;';
+      let rows = pages.map((page, i) => {
+        const p    = page.properties;
+        const f    = p['Renta Fija']?.number       || 0;
+        const fr   = p['Freelance / Extra']?.number || 0;
+        const o    = p['Otros Ingresos']?.number    || 0;
+        const tot  = f + fr + o;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);${i===pages.length-1?'border-bottom:none;':''}">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted);">Ingreso #${i+1}</span>
+          <span style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--green);">${fmt(tot)}</span>
+        </div>`;
+      }).join('');
+      detalleWrap.innerHTML = `
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Registros individuales</div>
+        ${rows}
       `;
-      lista.appendChild(footer);
+      lista.appendChild(detalleWrap);
     }
   } catch(e) {
     lista.innerHTML = '<div class="empty-state"><div class="big">⚠️</div>Error al cargar desde Notion</div>';
   }
 }
 
-function mkRentaChip(label, monto) {
-  const dim = monto === 0;
-  return `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;${dim ? 'opacity:0.35;' : ''}">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.06em;">${label.toUpperCase()}</div>
-    <div style="font-family:var(--mono);font-size:12px;font-weight:500;margin-top:2px;">${dim ? '—' : fmt(monto)}</div>
+function mkRentaFila(label, monto, total) {
+  if (monto === 0) return '';
+  const p = total > 0 ? Math.round((monto / total) * 100) : 0;
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+    <div style="flex:1;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${label}</div>
+      <div style="height:3px;background:var(--surface2);border-radius:99px;">
+        <div style="height:3px;width:${p}%;background:var(--green);border-radius:99px;transition:width .4s;"></div>
+      </div>
+    </div>
+    <div style="text-align:right;margin-left:16px;">
+      <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--green);">${fmt(monto)}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${p}%</div>
+    </div>
   </div>`;
 }
 
