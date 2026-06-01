@@ -743,20 +743,14 @@ async function registrarAbono(id) {
   // Registrar en Notion como gasto + actualizar saldo (simulado con nuevo gasto)
   mostrarGuardando(true);
   try {
-    await llamarNotion('create_pages', {
-      parent: { data_source_id: DS_GASTOS, type: 'data_source_id' },
-      pages: [{
-        properties: {
-          'Gasto': `Abono: ${d.nombre}`,
-          'Monto': monto,
-          'Categoría': '💳 Abono Deuda',
-          'Comentario': `Abono a deuda "${d.nombre}" — saldo restante: ${fmt(d.saldo)}`,
-          'Mes': mesActual(),
-          'date:Fecha:start': new Date().toISOString().split('T')[0],
-          'date:Fecha:is_datetime': 0
-        }
-      }]
-    });
+    await crearPagina({
+      'Gasto':     { title: [{ text: { content: `Abono: ${d.nombre}` } }] },
+      'Monto':     { number: monto },
+      'Categoría': { select: { name: '💳 Abono Deuda' } },
+      'Comentario':{ rich_text: [{ text: { content: `Abono a deuda "${d.nombre}" — saldo restante: ${fmt(d.saldo)}` } }] },
+      'Mes':       { rich_text: [{ text: { content: mesActual() } }] },
+      'Fecha':     { date: { start: new Date().toISOString().split('T')[0] } },
+    }, { database_id: DS_GASTOS });
     toast(`Abono de ${fmt(monto)} a "${d.nombre}" guardado en Notion ✓`);
     gastosLocales.unshift({ nombre: `Abono: ${d.nombre}`, monto, cat: '💳 Abono Deuda', comentario: `Saldo restante: ${fmt(d.saldo)}`, color: 'red' });
     renderGastos();
@@ -782,21 +776,15 @@ async function agregarDeuda() {
 
   mostrarGuardando(true);
   try {
-    await llamarNotion('create_pages', {
-      parent: { data_source_id: DS_DEUDAS, type: 'data_source_id' },
-      pages: [{
-        properties: {
-          'Deuda': nombre,
-          'Comentario': comentario,
-          'Monto Inicial': monto,
-          'Saldo Actual': monto,
-          'Estado': 'Activa',
-          'date:Fecha Inicio:start': new Date().toISOString().split('T')[0],
-          'date:Fecha Inicio:is_datetime': 0,
-          'Historial de Abonos': 'Sin abonos aún'
-        }
-      }]
-    });
+    await crearPagina({
+      'Deuda':               { title: [{ text: { content: nombre } }] },
+      'Comentario':          { rich_text: [{ text: { content: comentario } }] },
+      'Monto Inicial':       { number: monto },
+      'Saldo Actual':        { number: monto },
+      'Estado':              { select: { name: 'Activa' } },
+      'Fecha Inicio':        { date: { start: new Date().toISOString().split('T')[0] } },
+      'Historial de Abonos': { rich_text: [{ text: { content: 'Sin abonos aún' } }] },
+    }, { database_id: DS_DEUDAS });
     toast(`Deuda "${nombre}" guardada en Notion ✓`);
   } catch(e) {
     toast('Error al guardar deuda en Notion', false);
@@ -838,20 +826,14 @@ async function registrarGasto() {
   mostrarGuardando(true);
 
   try {
-    await llamarNotion('create_pages', {
-      parent: { data_source_id: DS_GASTOS, type: 'data_source_id' },
-      pages: [{
-        properties: {
-          'Gasto': nombre,
-          'Monto': monto,
-          'Categoría': catActiva,
-          'Comentario': comentario || 'Sin comentario',
-          'Mes': mesActual(),
-          'date:Fecha:start': new Date().toISOString().split('T')[0],
-          'date:Fecha:is_datetime': 0
-        }
-      }]
-    });
+    await crearPagina({
+      'Gasto':     { title: [{ text: { content: nombre } }] },
+      'Monto':     { number: monto },
+      'Categoría': { select: { name: catActiva } },
+      'Comentario':{ rich_text: [{ text: { content: comentario || 'Sin comentario' } }] },
+      'Mes':       { rich_text: [{ text: { content: mesActual() } }] },
+      'Fecha':     { date: { start: new Date().toISOString().split('T')[0] } },
+    }, { database_id: DS_GASTOS });
     toast(`"${nombre}" guardado en Notion ✓`);
     gastosLocales.unshift({ nombre, monto, cat: catActiva, comentario, color: CATS.find(c => c.key === catActiva)?.color || 'green' });
     renderGastos();
@@ -909,21 +891,16 @@ async function guardarMesEnNotion() {
   mostrarGuardando(true);
 
   try {
-    await llamarNotion('create_pages', {
-      parent: { data_source_id: DS_MENSUAL, type: 'data_source_id' },
-      pages: [{
-        properties: {
-          'Mes': mes,
-          'Renta Fija': fija,
-          'Freelance / Extra': free,
-          'Otros Ingresos': otros,
-          'Comida': comida,
-          'Transporte': trans,
-          'Ocio': ocio,
-          'Notas': 'Registrado desde dashboard'
-        }
-      }]
-    });
+    await crearPagina({
+      'Mes':                { title: [{ text: { content: mes } }] },
+      'Renta Fija':         { number: fija },
+      'Freelance / Extra':  { number: free },
+      'Otros Ingresos':     { number: otros },
+      'Comida':             { number: comida },
+      'Transporte':         { number: trans },
+      'Ocio':               { number: ocio },
+      'Notas':              { rich_text: [{ text: { content: 'Registrado desde dashboard' } }] },
+    }, { database_id: DS_MENSUAL });
     toast(`Mes "${mes}" guardado en Notion ✓`);
   } catch(e) {
     toast('Error al guardar el mes', false);
@@ -937,32 +914,31 @@ async function guardarMesEnNotion() {
 function cambiarMes() { recalc(); }
 function mostrarGuardando(v) { document.getElementById('saving-ind').classList.toggle('show', v); }
 
-// ── Llamar a Notion via API de Claude ──
-async function llamarNotion(tool, params) {
-  const system = `Eres un asistente que ejecuta acciones en Notion usando el MCP de Notion. 
-Cuando te pida crear páginas, hazlo usando la herramienta notion-${tool} con los parámetros exactos que te entrego.
-Responde solo con "ok" si la operación fue exitosa.`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+const WORKER_URL = 'https://finanzas-worker.martinfigueroaa.workers.dev';
+
+
+// ── Crear página en Notion via Worker ──
+async function crearPagina(properties, parent) {
+  const resp = await fetch(WORKER_URL + '/notion/pages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system,
-      messages: [{
-        role: 'user',
-        content: `Ejecuta notion-${tool} con estos parámetros: ${JSON.stringify(params)}\n\nDS_MENSUAL=${DS_MENSUAL}\nDS_DEUDAS=${DS_DEUDAS}\nDS_GASTOS=${DS_GASTOS}`,
-      }],
-      mcp_servers: [{
-        type: 'url',
-        url: 'https://mcp.notion.com/mcp',
-        name: 'notion-mcp'
-      }]
-    })
+    body: JSON.stringify({ parent, properties }),
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error?.message || 'API error');
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.message || 'Error Notion');
+  return data;
+}
+
+// ── Consultar base de datos de Notion via Worker ──
+async function consultarDB(database_id, filter) {
+  const resp = await fetch(WORKER_URL + '/notion/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ database_id, filter }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.message || 'Error Notion');
   return data;
 }
 
