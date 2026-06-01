@@ -53,6 +53,39 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin { animation: spin 1s linear infinite; display: inline-block; }
 
+  /* BARRA DE CATEGORÍAS EN NAVBAR */
+  .nav-cats-bar {
+    position: sticky;
+    top: 65px;
+    z-index: 99;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-cats-bar::-webkit-scrollbar { display: none; }
+  .nav-cats-bar.visible { display: flex; }
+  .nav-cat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .nav-cats-list {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  /* ocultar el bloque de cats en el form cuando ya está arriba */
+  .cats-in-nav { display: none !important; }
+
   /* VISTA SELECTOR */
   .vista-selector {
     display: flex; gap: 10px; padding: 28px 28px 0;
@@ -397,6 +430,12 @@
   <span class="saving-indicator" id="saving-ind"><span class="spin">⟳</span> Guardando en Notion…</span>
 </div>
 
+<!-- BARRA DE CATEGORÍAS (aparece al seleccionar en vista gasto) -->
+<div class="nav-cats-bar" id="nav-cats-bar">
+  <span class="nav-cat-label">CAT</span>
+  <div class="nav-cats-list" id="nav-cats-list"></div>
+</div>
+
 <!-- SELECTOR -->
 <div class="vista-selector">
   <button class="vista-btn" id="btn-v-mes"     onclick="setVista('mes')">
@@ -718,6 +757,8 @@ function setVista(v) {
     const btn = document.getElementById('btn-v-' + k);
     btn.className = 'vista-btn' + (k === v ? ' active-' + k : '');
   });
+  // Al salir de gasto, ocultar barra de cats y resetear
+  if (v !== 'gasto') ocultarNavCats();
 }
 
 // ── Toast ──
@@ -1040,13 +1081,57 @@ function renderCats() {
   CATS.forEach(c => {
     const btn = document.createElement('button');
     btn.className = 'cat-btn'; btn.dataset.color = c.color; btn.textContent = c.key;
-    btn.onclick = () => {
-      catActiva = c.key;
-      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    };
+    btn.onclick = () => seleccionarCat(c.key, c.color);
     wrap.appendChild(btn);
   });
+}
+
+function seleccionarCat(key, color) {
+  catActiva = key;
+
+  // Sincronizar estado activo en ambas listas (form + navbar)
+  document.querySelectorAll('.cat-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === key);
+  });
+
+  // Subir todas las cats al navbar la primera vez que se selecciona
+  const bar  = document.getElementById('nav-cats-bar');
+  const list = document.getElementById('nav-cats-list');
+  const wrap = document.getElementById('cats-wrap');
+
+  if (!bar.classList.contains('visible')) {
+    // Poblar la barra del navbar con los mismos botones
+    list.innerHTML = '';
+    CATS.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'cat-btn'; btn.dataset.color = c.color; btn.textContent = c.key;
+      btn.classList.toggle('active', c.key === key);
+      btn.onclick = () => seleccionarCat(c.key, c.color);
+      list.appendChild(btn);
+    });
+    bar.classList.add('visible');
+    // Ocultar el bloque de cats en el formulario
+    wrap.parentElement.classList.add('cats-in-nav');
+  } else {
+    // Solo actualizar activo en navbar
+    list.querySelectorAll('.cat-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent === key);
+    });
+  }
+
+  // Scroll para que la cat activa sea visible en la barra
+  const activeBtn = list.querySelector('.cat-btn.active');
+  if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function ocultarNavCats() {
+  const bar  = document.getElementById('nav-cats-bar');
+  const wrap = document.getElementById('cats-wrap');
+  bar.classList.remove('visible');
+  document.getElementById('nav-cats-list').innerHTML = '';
+  if (wrap) wrap.parentElement.classList.remove('cats-in-nav');
+  catActiva = null;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
 }
 
 // ── Registrar gasto ──
@@ -1074,8 +1159,7 @@ async function registrarGasto() {
     document.getElementById('g-nombre').value = '';
     document.getElementById('g-monto').value  = '';
     document.getElementById('g-comentario').value = '';
-    catActiva = null;
-    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    ocultarNavCats();
   } catch(e) { toast('Error al guardar en Notion', false); }
   btn.disabled = false; btn.textContent = 'Guardar gasto en Notion ↑'; mostrarGuardando(false);
 }
