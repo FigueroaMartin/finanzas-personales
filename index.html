@@ -169,6 +169,21 @@
   }
   .abono-btn:hover { opacity: 0.85; }
   .tag-pagada { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 99px; background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+
+  /* SUB-TABS DEUDAS */
+  .subtabs { display: flex; gap: 6px; margin-bottom: 20px; }
+  .subtab {
+    flex: 1; font-family: var(--sans); font-size: 12px; font-weight: 700;
+    padding: 9px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s;
+    text-align: center;
+  }
+  .subtab:hover { border-color: var(--border2); color: var(--text); }
+  .subtab.active-activas { border-color: var(--red);   background: var(--red-dim);   color: var(--red);   }
+  .subtab.active-pagadas { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+  .subtab-panel { display: none; }
+  .subtab-panel.active { display: block; }
+
   .nd-form { background: var(--surface2); border: 1px dashed var(--border2); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 10px; display: none; }
   .nd-form.open { display: block; }
   .nd-label { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.06em; }
@@ -392,21 +407,44 @@
 <!-- ═══════════════ VISTA: DEUDA ═══════════════ -->
 <div class="view" id="view-deuda">
   <div class="card">
-    <div class="card-title">Deudas activas <span class="card-title-badge" id="deuda-total-badge">Total $0</span></div>
-    <div id="lista-deudas"></div>
-    <div class="nd-form" id="nd-form">
-      <div class="nd-label">NOMBRE</div>
-      <input class="nd-input" type="text" id="nd-nombre" placeholder="ej: Préstamo amigo" />
-      <div class="nd-label">COMENTARIO</div>
-      <input class="nd-input" type="text" id="nd-comentario" placeholder="ej: Para arreglo del auto" />
-      <div class="nd-label">MONTO TOTAL</div>
-      <input class="nd-input" type="number" id="nd-monto" placeholder="0" style="margin-bottom:0;" />
-      <div class="nd-row">
-        <button class="btn-cancel" onclick="cerrarND()">Cancelar</button>
-        <button class="btn-confirm" onclick="agregarDeuda()">+ Agregar deuda</button>
+    <!-- Sub-tabs -->
+    <div class="subtabs">
+      <button class="subtab active-activas" id="stab-activas" onclick="setSubtab('activas')">
+        💳 Activas <span id="badge-n-activas" style="font-family:var(--mono);font-size:10px;margin-left:4px;opacity:0.7;"></span>
+      </button>
+      <button class="subtab" id="stab-pagadas" onclick="setSubtab('pagadas')">
+        ✓ Pagadas <span id="badge-n-pagadas" style="font-family:var(--mono);font-size:10px;margin-left:4px;opacity:0.7;"></span>
+      </button>
+    </div>
+
+    <!-- Panel: Activas -->
+    <div class="subtab-panel active" id="panel-activas">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">Saldo pendiente total</span>
+        <span style="font-family:var(--mono);font-size:14px;color:var(--red);font-weight:500;" id="deuda-total-badge">$0</span>
+      </div>
+      <div id="lista-deudas-activas"></div>
+      <div class="nd-form" id="nd-form">
+        <div class="nd-label">NOMBRE</div>
+        <input class="nd-input" type="text" id="nd-nombre" placeholder="ej: Préstamo amigo" />
+        <div class="nd-label">COMENTARIO</div>
+        <input class="nd-input" type="text" id="nd-comentario" placeholder="ej: Para arreglo del auto" />
+        <div class="nd-label">MONTO TOTAL</div>
+        <input class="nd-input" type="number" id="nd-monto" placeholder="0" style="margin-bottom:0;" />
+        <div class="nd-row">
+          <button class="btn-cancel" onclick="cerrarND()">Cancelar</button>
+          <button class="btn-confirm" onclick="agregarDeuda()">+ Agregar deuda</button>
+        </div>
+      </div>
+      <button class="btn-add" id="btn-add-deuda" onclick="abrirND()">+ Nueva deuda</button>
+    </div>
+
+    <!-- Panel: Pagadas -->
+    <div class="subtab-panel" id="panel-pagadas">
+      <div id="lista-deudas-pagadas">
+        <div class="empty-state"><div class="big">🎉</div>Sin deudas pagadas aún</div>
       </div>
     </div>
-    <button class="btn-add" id="btn-add-deuda" onclick="abrirND()">+ Nueva deuda</button>
   </div>
 </div>
 
@@ -534,7 +572,7 @@ const DS_GASTOS  = '970d4c5f-b865-45ce-b5ba-20bf2883cd98';
 const WORKER_URL = 'https://finanzas-worker.martinfigueroaa.workers.dev';
 
 let deudas = [
-  { id: 1, nombre: 'Deuda inicial', comentario: 'Deuda original', inicial: 140000, saldo: 140000, historial: [] }
+  { id: 1, nombre: 'Deuda inicial', comentario: 'Deuda original', inicial: 140000, saldo: 140000, historial: [], notionId: '372b28b9-dc2f-81f6-be26-ccb0aac6c816', fechaPago: null }
 ];
 let nextId = 2;
 let gastosLocales = [];
@@ -657,82 +695,143 @@ async function guardarMesEnNotion() {
   btn.disabled = false; btn.textContent = '↑ Guardar mes en Notion'; mostrarGuardando(false);
 }
 
-// ── Deudas ──
-function renderDeudas() {
-  const el = document.getElementById('lista-deudas');
-  el.innerHTML = '';
-  const tDeuda = deudas.reduce((s, d) => s + Math.max(0, d.saldo), 0);
-  document.getElementById('deuda-total-badge').textContent = 'Total ' + fmt(tDeuda);
-  if (deudas.length === 0) {
-    el.innerHTML = '<div class="empty-state">Sin deudas registradas</div>';
-    return;
-  }
-  deudas.forEach(d => {
-    const pagado = d.inicial - d.saldo;
-    const pctP   = d.inicial > 0 ? Math.round((pagado / d.inicial) * 100) : 100;
-    const pagada = d.saldo <= 0;
-    const div = document.createElement('div');
-    div.className = 'deuda-item';
-    div.innerHTML = `
-      <div class="deuda-header">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;">
-            ${d.nombre} ${pagada ? '<span class="tag-pagada">✓ Pagada</span>' : ''}
-          </div>
-          <div class="deuda-comment">💬 ${d.comentario}</div>
-        </div>
-        <div style="text-align:right;margin-left:10px;">
-          <div class="deuda-saldo" style="color:${pagada ? 'var(--green)' : 'var(--red)'};">${pagada ? '¡Pagada!' : fmt(d.saldo)}</div>
-          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">de ${fmt(d.inicial)}</div>
-        </div>
-        <button class="del-btn" onclick="eliminarDeuda(${d.id})">✕</button>
-      </div>
-      <div class="deuda-bar-wrap"><div class="deuda-bar-fill" style="width:${Math.max(0,100-pctP)}%;"></div></div>
-      <div class="deuda-footer"><span>${pctP}% pagado</span><span>${d.historial.length} abono${d.historial.length!==1?'s':''}</span></div>
-      ${!pagada ? `<div class="abono-row">
-        <input class="abono-input" type="number" id="ab-${d.id}" placeholder="Monto del abono…" />
-        <button class="abono-btn" onclick="registrarAbono(${d.id})">Abonar ↑</button>
-      </div>` : ''}
-    `;
-    el.appendChild(div);
+// ── Sub-tabs deudas ──
+function setSubtab(tab) {
+  ['activas','pagadas'].forEach(k => {
+    document.getElementById('stab-' + k).className = 'subtab' + (k === tab ? ' active-' + k : '');
+    document.getElementById('panel-' + k).classList.toggle('active', k === tab);
   });
+}
+
+// ── Deudas ──
+function buildDeudaCard(d) {
+  const pagado = d.inicial - d.saldo;
+  const pctP   = d.inicial > 0 ? Math.round((pagado / d.inicial) * 100) : 100;
+  const pagada = d.saldo <= 0;
+  const div = document.createElement('div');
+  div.className = 'deuda-item';
+  div.innerHTML = `
+    <div class="deuda-header">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">${d.nombre}</div>
+        <div class="deuda-comment">💬 ${d.comentario}</div>
+      </div>
+      <div style="text-align:right;margin-left:10px;">
+        <div class="deuda-saldo" style="color:${pagada ? 'var(--green)' : 'var(--red)'};">
+          ${pagada ? '¡Pagada!' : fmt(d.saldo)}
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">de ${fmt(d.inicial)}</div>
+      </div>
+      <button class="del-btn" onclick="eliminarDeuda(${d.id})">✕</button>
+    </div>
+    <div class="deuda-bar-wrap">
+      <div class="deuda-bar-fill" style="background:${pagada ? 'var(--green)' : 'var(--red)'};width:${Math.max(0,100-pctP)}%;"></div>
+    </div>
+    <div class="deuda-footer">
+      <span>${pctP}% pagado</span>
+      <span>${d.historial.length} abono${d.historial.length!==1?'s':''}</span>
+    </div>
+    ${!pagada
+      ? `<div class="abono-row">
+           <input class="abono-input" type="number" id="ab-${d.id}" placeholder="Monto del abono…" />
+           <button class="abono-btn" onclick="registrarAbono(${d.id})">Abonar ↑</button>
+         </div>`
+      : `<div style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--green);">
+           ✓ Pagada el ${d.fechaPago || '—'}
+         </div>`
+    }
+  `;
+  return div;
+}
+
+function renderDeudas() {
+  const activas = deudas.filter(d => d.saldo > 0);
+  const pagadas = deudas.filter(d => d.saldo <= 0);
+
+  document.getElementById('badge-n-activas').textContent = activas.length || '';
+  document.getElementById('badge-n-pagadas').textContent = pagadas.length || '';
+  document.getElementById('deuda-total-badge').textContent = fmt(activas.reduce((s,d) => s+d.saldo, 0));
+
+  const elA = document.getElementById('lista-deudas-activas');
+  elA.innerHTML = '';
+  if (activas.length === 0) {
+    elA.innerHTML = '<div class="empty-state" style="padding:20px 0;"><div class="big">✅</div>Sin deudas activas</div>';
+  } else {
+    activas.forEach(d => elA.appendChild(buildDeudaCard(d)));
+  }
+
+  const elP = document.getElementById('lista-deudas-pagadas');
+  elP.innerHTML = '';
+  if (pagadas.length === 0) {
+    elP.innerHTML = '<div class="empty-state"><div class="big">🎉</div>Sin deudas pagadas aún</div>';
+  } else {
+    pagadas.forEach(d => elP.appendChild(buildDeudaCard(d)));
+  }
 }
 
 async function registrarAbono(id) {
   const d = deudas.find(x => x.id === id);
   if (!d) return;
-  const inp = document.getElementById('ab-' + id);
+  const inp   = document.getElementById('ab-' + id);
   const monto = +inp.value || 0;
-  if (monto <= 0 || monto > d.saldo) { inp.style.borderColor='var(--red)'; setTimeout(()=>inp.style.borderColor='',1500); return; }
+  if (monto <= 0 || monto > d.saldo) {
+    inp.style.borderColor = 'var(--red)';
+    setTimeout(() => inp.style.borderColor = '', 1500);
+    return;
+  }
+
   d.saldo -= monto;
-  const mes = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const now = new Date();
-  d.historial.push({ mes: mes[now.getMonth()]+' '+now.getFullYear(), monto, saldo: d.saldo });
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const now   = new Date();
+  const hoy   = now.toISOString().split('T')[0];
+  d.historial.push({ mes: meses[now.getMonth()] + ' ' + now.getFullYear(), monto, saldo: d.saldo });
   inp.value = '';
+
   mostrarGuardando(true);
   try {
+    // Registrar el abono como gasto en DS_GASTOS
     await crearPagina({
       'Gasto':     { title:     [{ text: { content: `Abono: ${d.nombre}` } }] },
       'Monto':     { number:    monto },
       'Categoría': { select:    { name: '💳 Abono Deuda' } },
       'Comentario':{ rich_text: [{ text: { content: `Abono a "${d.nombre}" — saldo: ${fmt(d.saldo)}` } }] },
       'Mes':       { rich_text: [{ text: { content: mesActual() } }] },
-      'Fecha':     { date:      { start: new Date().toISOString().split('T')[0] } },
+      'Fecha':     { date:      { start: hoy } },
     }, { database_id: DS_GASTOS });
-    toast(`Abono de ${fmt(monto)} a "${d.nombre}" guardado ✓`);
-    gastosLocales.unshift({ nombre:`Abono: ${d.nombre}`, monto, cat:'💳 Abono Deuda', comentario:`Saldo: ${fmt(d.saldo)}`, color:'red' });
+
+    // Si quedó en 0, actualizar estado en DS_DEUDAS y cambiar a tab Pagadas
+    if (d.saldo <= 0 && d.notionId) {
+      d.fechaPago = hoy;
+      await actualizarPagina(d.notionId, {
+        'Estado':       { select: { name: 'Pagada' } },
+        'Saldo Actual': { number: 0 },
+      });
+      toast(`🎉 ¡"${d.nombre}" pagada al 100%! Notion actualizado ✓`);
+      setTimeout(() => setSubtab('pagadas'), 400);
+    } else {
+      toast(`Abono de ${fmt(monto)} a "${d.nombre}" guardado ✓`);
+    }
+
+    gastosLocales.unshift({ nombre: `Abono: ${d.nombre}`, monto, cat: '💳 Abono Deuda', comentario: `Saldo: ${fmt(d.saldo)}`, color: 'red' });
     renderGastos();
-  } catch(e) { toast('Error al guardar en Notion', false); }
+  } catch(e) {
+    console.error(e);
+    toast('Error al guardar en Notion', false);
+  }
   mostrarGuardando(false);
   renderDeudas();
 }
 
 function eliminarDeuda(id) { deudas = deudas.filter(x => x.id !== id); renderDeudas(); }
-function abrirND()  { document.getElementById('nd-form').classList.add('open'); document.getElementById('btn-add-deuda').style.display='none'; }
+
+function abrirND() {
+  document.getElementById('nd-form').classList.add('open');
+  document.getElementById('btn-add-deuda').style.display = 'none';
+}
 function cerrarND() {
   document.getElementById('nd-form').classList.remove('open');
-  document.getElementById('btn-add-deuda').style.display='flex';
-  ['nd-nombre','nd-comentario','nd-monto'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('btn-add-deuda').style.display = 'flex';
+  ['nd-nombre','nd-comentario','nd-monto'].forEach(id => document.getElementById(id).value = '');
 }
 
 async function agregarDeuda() {
@@ -740,11 +839,13 @@ async function agregarDeuda() {
   const comentario = document.getElementById('nd-comentario').value.trim() || 'Sin descripción';
   const monto      = +document.getElementById('nd-monto').value || 0;
   if (!nombre || monto <= 0) { toast('Completa nombre y monto', false); return; }
-  deudas.push({ id: nextId++, nombre, comentario, inicial: monto, saldo: monto, historial: [] });
+
+  const nuevaDeuda = { id: nextId++, nombre, comentario, inicial: monto, saldo: monto, historial: [], notionId: null, fechaPago: null };
+  deudas.push(nuevaDeuda);
   cerrarND();
   mostrarGuardando(true);
   try {
-    await crearPagina({
+    const resp = await crearPagina({
       'Deuda':               { title:     [{ text: { content: nombre } }] },
       'Comentario':          { rich_text: [{ text: { content: comentario } }] },
       'Monto Inicial':       { number:    monto },
@@ -753,6 +854,7 @@ async function agregarDeuda() {
       'Fecha Inicio':        { date:      { start: new Date().toISOString().split('T')[0] } },
       'Historial de Abonos': { rich_text: [{ text: { content: 'Sin abonos aún' } }] },
     }, { database_id: DS_DEUDAS });
+    nuevaDeuda.notionId = resp.id;
     toast(`Deuda "${nombre}" guardada en Notion ✓`);
   } catch(e) { toast('Error al guardar deuda en Notion', false); }
   mostrarGuardando(false);
@@ -1028,6 +1130,16 @@ async function crearPagina(properties, parent) {
   });
   const data = await resp.json();
   if (!resp.ok) { console.error('Notion error:', data); throw new Error(data.message||'Error Notion'); }
+  return data;
+}
+
+async function actualizarPagina(page_id, properties) {
+  const resp = await fetch(WORKER_URL + '/notion/update', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ page_id, properties }),
+  });
+  const data = await resp.json();
+  if (!resp.ok) { console.error('Notion update error:', data); throw new Error(data.message||'Error Notion'); }
   return data;
 }
 
