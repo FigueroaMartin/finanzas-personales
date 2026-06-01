@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fondo oscuro redondeado -->
+  <rect width="512" height="512" rx="100" fill="#0e0f11"/>
+
+  <!-- Bolsa: cuerpo -->
+  <ellipse cx="256" cy="320" rx="168" ry="155" fill="#22c55e"/>
+
+  <!-- Bolsa: cuello -->
+  <rect x="200" y="195" width="112" height="72" rx="14" fill="#22c55e"/>
+
+  <!-- Nudo superior -->
+  <ellipse cx="256" cy="192" rx="62" ry="34" fill="#16a34a"/>
+
+  <!-- Detalle nudo (línea) -->
+  <ellipse cx="256" cy="192" rx="38" ry="18" fill="none" stroke="#0e0f11" stroke-width="6"/>
+
+  <!-- Signo $ -->
+  <text
+    x="256" y="358"
+    font-family="Arial Black, Helvetica, sans-serif"
+    font-size="148"
+    font-weight="900"
+    text-anchor="middle"
+    fill="#0e0f11"
+    letter-spacing="-4"
+  >$</text>
+
+  <!-- Brillo sutil en la bolsa -->
+  <ellipse cx="210" cy="265" rx="40" ry="28" fill="white" opacity="0.10" transform="rotate(-20 210 265)"/>
+</svg>
