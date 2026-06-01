@@ -531,6 +531,14 @@
       </div>
     </div>
 
+    <!-- INGRESOS DEL MES -->
+    <div class="card">
+      <div class="card-title">Ingresos del mes <span class="card-title-badge" id="res-ing-count">0 registros</span></div>
+      <div id="res-ing-list">
+        <div class="empty-state">Sin ingresos registrados</div>
+      </div>
+    </div>
+
     <!-- LISTA DE TRANSACCIONES -->
     <div class="card">
       <div class="card-title">Transacciones del mes <span class="card-title-badge" id="res-tx-count">0</span></div>
@@ -1006,38 +1014,42 @@ async function cargarResumen() {
     const mensualPages = mensualResp.results || [];
     const gastosPages  = gastosResp.results  || [];
 
-    // Extraer ingreso del registro mensual
+    // Sumar ingresos de todos los registros del mes y guardar detalle
     let ingreso = 0;
-    if (mensualPages.length > 0) {
-      const p = mensualPages[0].properties;
-      ingreso = (p['Renta Fija']?.number || 0)
-              + (p['Freelance / Extra']?.number || 0)
-              + (p['Otros Ingresos']?.number || 0);
-    }
+    const ingList = [];
+    mensualPages.forEach(page => {
+      const p    = page.properties;
+      const fija  = p['Renta Fija']?.number       || 0;
+      const free  = p['Freelance / Extra']?.number || 0;
+      const otros = p['Otros Ingresos']?.number    || 0;
+      ingreso += fija + free + otros;
+      if (fija  > 0) ingList.push({ concepto: 'Sueldo / Renta fija',    monto: fija  });
+      if (free  > 0) ingList.push({ concepto: 'Freelance / Extra',       monto: free  });
+      if (otros > 0) ingList.push({ concepto: 'Otros ingresos',          monto: otros });
+    });
 
     // Agregar gastos reales por categoría
     const catTotals = {};
     let totalGastado = 0;
     const txList = [];
     gastosPages.forEach(page => {
-      const p     = page.properties;
-      const cat   = p['Categoría']?.select?.name || '📦 Otros';
-      const monto = p['Monto']?.number || 0;
-      const nombre = p['Gasto']?.title?.[0]?.plain_text || '—';
-      const fecha  = p['Fecha']?.date?.start || '';
+      const p          = page.properties;
+      const cat        = p['Categoría']?.select?.name             || '📦 Otros';
+      const monto      = p['Monto']?.number                       || 0;
+      const nombre     = p['Gasto']?.title?.[0]?.plain_text       || '—';
+      const fecha      = p['Fecha']?.date?.start                  || '';
       const comentario = p['Comentario']?.rich_text?.[0]?.plain_text || '';
       catTotals[cat] = (catTotals[cat] || 0) + monto;
-      totalGastado += monto;
+      totalGastado   += monto;
       txList.push({ nombre, cat, monto, fecha, comentario });
     });
 
-    // Ordenar transacciones por fecha descendente
     txList.sort((a, b) => b.fecha.localeCompare(a.fecha));
 
     const ahorro = Math.round(ingreso * 0.5);
     const libre  = ingreso - ahorro - totalGastado;
 
-    renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList, mes });
+    renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList, ingList, mes });
   } catch(e) {
     console.error(e);
     toast('Error al cargar datos de Notion', false);
@@ -1046,7 +1058,7 @@ async function cargarResumen() {
   btn.disabled = false; btn.textContent = '↓ Cargar datos de Notion'; mostrarGuardando(false);
 }
 
-function renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList, mes }) {
+function renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList, ingList, mes }) {
   document.getElementById('res-resultado').style.display = 'block';
 
   // KPIs
@@ -1150,6 +1162,43 @@ function renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList
           y: { grid: { display: false }, ticks: { color: '#f0f1f3', font: { family: 'Syne', size: 12 } } },
         }
       }
+    });
+  }
+
+  // ── Ingresos del mes ──
+  const ingEl = document.getElementById('res-ing-list');
+  document.getElementById('res-ing-count').textContent = ingList.length + ' concepto' + (ingList.length !== 1 ? 's' : '');
+  if (ingList.length === 0) {
+    ingEl.innerHTML = '<div class="empty-state"><div class="big">📭</div>Sin ingresos en ' + mes + '</div>';
+  } else {
+    // Total hero
+    ingEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Total ingresos</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">ahorro 50% → <span style="color:var(--green);">${fmt(ahorro)}</span></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:26px;font-weight:700;color:var(--green);letter-spacing:-0.03em;">${fmt(ingreso)}</div>
+      </div>
+    `;
+    ingList.forEach(ing => {
+      const p = ingreso > 0 ? Math.round((ing.monto / ingreso) * 100) : 0;
+      const row = document.createElement('div');
+      row.className = 'res-gasto-item';
+      row.innerHTML = `
+        <div class="res-gasto-left">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>
+          <div>
+            <div class="res-gasto-name">${ing.concepto}</div>
+            <div class="res-gasto-cat">
+              <span style="display:inline-block;width:${p}%;max-width:80px;height:2px;background:var(--green);border-radius:99px;vertical-align:middle;margin-right:6px;"></span>
+              ${p}% del total
+            </div>
+          </div>
+        </div>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:var(--green);">+${fmt(ing.monto)}</div>
+      `;
+      ingEl.appendChild(row);
     });
   }
 
