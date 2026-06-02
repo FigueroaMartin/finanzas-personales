@@ -1049,7 +1049,7 @@ async function cargarDeudas() {
   const lista = document.getElementById('lista-deudas-activas');
   lista.innerHTML = '<div class="empty-state" style="padding:20px 0;"><div class="spin" style="font-size:20px;">⟳</div>Cargando deudas…</div>';
   try {
-    const data = await consultarDB(DS_DEUDAS, {});
+    const data = await consultarDB(DS_DEUDAS);
     deudas = [];
     (data.results || []).forEach((page, i) => {
       const p = page.properties;
