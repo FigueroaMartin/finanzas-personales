@@ -1121,52 +1121,84 @@ function renderDeudas() {
 async function registrarAbono(id) {
   const d = deudas.find(x => x.id === id);
   if (!d) return;
+
   const inp   = document.getElementById('ab-' + id);
-  const monto = +inp.value || 0;
-  if (monto <= 0 || monto > d.saldo) {
+  const btn   = inp?.nextElementSibling;
+  const monto = +inp?.value || 0;
+
+  if (monto <= 0) {
+    toast('Ingresa un monto para el abono', false);
+    inp.style.borderColor = 'var(--red)';
+    setTimeout(() => inp.style.borderColor = '', 1500);
+    return;
+  }
+  if (monto > d.saldo) {
+    toast(`El abono (${fmt(monto)}) supera el saldo (${fmt(d.saldo)})`, false);
     inp.style.borderColor = 'var(--red)';
     setTimeout(() => inp.style.borderColor = '', 1500);
     return;
   }
 
+  // Estado del botón
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  mostrarGuardando(true);
+
+  const saldoAntes = d.saldo;
   d.saldo -= monto;
   const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const now   = new Date();
   const hoy   = now.toISOString().split('T')[0];
   d.historial.push({ mes: meses[now.getMonth()] + ' ' + now.getFullYear(), monto, saldo: d.saldo });
-  inp.value = '';
 
-  mostrarGuardando(true);
   try {
-    // Registrar el abono como gasto en DS_GASTOS
+    // 1. Registrar el abono como entrada en DS_GASTOS
     await crearPagina({
       'Gasto':     { title:     [{ text: { content: `Abono: ${d.nombre}` } }] },
       'Monto':     { number:    monto },
       'Categoría': { select:    { name: '💳 Abono Deuda' } },
-      'Comentario':{ rich_text: [{ text: { content: `Abono a "${d.nombre}" — saldo: ${fmt(d.saldo)}` } }] },
+      'Comentario':{ rich_text: [{ text: { content: `Abono a "${d.nombre}" — saldo restante: ${fmt(d.saldo)}` } }] },
       'Mes':       { rich_text: [{ text: { content: mesActual() } }] },
       'Fecha':     { date:      { start: hoy } },
     }, { database_id: DS_GASTOS });
 
-    // Si quedó en 0, actualizar estado en DS_DEUDAS y cambiar a tab Pagadas
-    if (d.saldo <= 0 && d.notionId) {
-      d.fechaPago = hoy;
-      await actualizarPagina(d.notionId, {
-        'Estado':       { select: { name: 'Pagada' } },
-        'Saldo Actual': { number: 0 },
-      });
-      toast(`🎉 ¡"${d.nombre}" pagada al 100%! Notion actualizado ✓`);
-      setTimeout(() => setSubtab('pagadas'), 400);
-    } else {
-      toast(`Abono de ${fmt(monto)} a "${d.nombre}" guardado ✓`);
+    // 2. Actualizar el saldo en DS_DEUDAS (siempre, no solo al pagar)
+    if (d.notionId) {
+      const propActualizar = {
+        'Saldo Actual':        { number: Math.max(0, d.saldo) },
+        'Historial de Abonos': { rich_text: [{ text: { content: `Último abono: ${fmt(monto)} el ${hoy}` } }] },
+      };
+      if (d.saldo <= 0) {
+        propActualizar['Estado']     = { select: { name: 'Pagada' } };
+        propActualizar['Fecha Pago'] = { date:   { start: hoy } };
+        d.fechaPago = hoy;
+      }
+      await actualizarPagina(d.notionId, propActualizar);
     }
 
-    gastosLocales.unshift({ nombre: `Abono: ${d.nombre}`, monto, cat: '💳 Abono Deuda', comentario: `Saldo: ${fmt(d.saldo)}`, color: 'red' });
+    // 3. Toast y UX
+    if (d.saldo <= 0) {
+      toast(`🎉 ¡"${d.nombre}" pagada al 100%! Guardado en Notion ✓`);
+      setTimeout(() => setSubtab('pagadas'), 400);
+    } else {
+      toast(`Abono de ${fmt(monto)} guardado — saldo restante: ${fmt(d.saldo)} ✓`);
+    }
+
+    inp.value = '';
+    gastosLocales.unshift({
+      nombre: `Abono: ${d.nombre}`, monto,
+      cat: '💳 Abono Deuda', comentario: `Saldo: ${fmt(d.saldo)}`, color: 'red'
+    });
     renderGastos();
+
   } catch(e) {
-    console.error(e);
-    toast('Error al guardar en Notion', false);
+    console.error('Error registrarAbono:', e);
+    // Revertir el cambio local si falló
+    d.saldo = saldoAntes;
+    d.historial.pop();
+    toast(`Error al guardar: ${e.message || 'revisa la conexión'}`, false);
   }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Abonar ↑'; }
   mostrarGuardando(false);
   renderDeudas();
 }
