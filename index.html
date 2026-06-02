@@ -126,10 +126,11 @@
     #view-resumen.active {
       display: grid;
       grid-template-columns: 290px 1fr 310px;
-      grid-template-rows: auto 1fr;
-      grid-template-areas: "sel kpis ing" "dot bars txs";
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas: "ttl ttl ttl" "sel kpis ing" "dot bars txs";
       gap: 18px; height: calc(100vh - 62px); overflow: hidden; align-items: start;
     }
+    #view-resumen .view-title { grid-area: ttl; margin-bottom: 0; }
     #res-resultado { display: contents !important; }
     #res-card-sel   { grid-area: sel;  align-self: start; }
     #res-card-kpis  { grid-area: kpis; align-self: start; }
@@ -419,6 +420,19 @@
   .libre-strip-val { font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--green); }
   .libre-strip.neg .libre-strip-val { color: var(--red); }
 
+  /* ── VIEW TITLE (igual gradiente que home) ── */
+  .view-title {
+    font-size: 28px; font-weight: 800; letter-spacing: -0.04em;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--text) 40%, var(--green) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    grid-column: 1 / -1; /* span todas las columnas en desktop */
+  }
+  @media (min-width: 1024px) {
+    .view-title { font-size: 36px; margin-bottom: 24px; }
+  }
+
   /* ── HOME SCREEN ── */
   #home-screen {
     display: flex; flex-direction: column;
@@ -541,6 +555,8 @@
 <!-- ═══════════════ VISTA: MES ═══════════════ -->
 <div class="view" id="view-mes">
 
+  <div class="view-title">Subir mes</div>
+
   <!-- Formulario de ingreso -->
   <div class="card">
     <div class="card-title">Nueva renta <span class="card-title-badge">→ Notion</span></div>
@@ -602,6 +618,7 @@
 
 <!-- ═══════════════ VISTA: DEUDA ═══════════════ -->
 <div class="view" id="view-deuda">
+  <div class="view-title">Abonar deuda</div>
   <div class="card">
     <!-- Sub-tabs -->
     <div class="subtabs">
@@ -646,6 +663,7 @@
 
 <!-- ═══════════════ VISTA: GASTO ═══════════════ -->
 <div class="view" id="view-gasto">
+  <div class="view-title">Subir gasto</div>
   <div class="card">
     <div class="card-title">Registrar gasto <span class="card-title-badge">→ Notion</span></div>
     <div class="gasto-form">
@@ -678,6 +696,8 @@
 
 <!-- ═══════════════ VISTA: RESUMEN ═══════════════ -->
 <div class="view" id="view-resumen">
+
+  <div class="view-title">Resumen</div>
 
   <div class="card" id="res-card-sel">
     <div class="card-title">Mes a consultar</div>
