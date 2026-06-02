@@ -497,13 +497,12 @@
     font-family: var(--sans);
     text-align: center;
   }
-  .home-card:hover { background: var(--surface2); transform: translateY(-2px); }
   .home-card:active { transform: translateY(0); }
   .home-card.c-mes    { --hc: var(--green);  --hc-dim: var(--green-dim);  }
   .home-card.c-deuda  { --hc: var(--red);    --hc-dim: var(--red-dim);    }
   .home-card.c-gasto  { --hc: var(--blue);   --hc-dim: var(--blue-dim);   }
   .home-card.c-resumen{ --hc: var(--purple); --hc-dim: var(--purple-dim); }
-  .home-card:hover { border-color: var(--hc); background: var(--hc-dim); }
+  .home-card:hover { border-color: var(--hc); background: var(--hc-dim); transform: translateY(-2px); }
   .home-card-icon { font-size: 36px; line-height: 1; }
   .home-card-label { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
   .home-card-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); }
@@ -594,13 +593,6 @@
     <div class="field-wrap">
       <div class="field-label">MES</div>
       <select class="month-pill" id="mes-sel" onchange="recalcMes(); cargarRentasMes()">
-        <option value="Junio 2026">Junio 2026</option>
-        <option value="Julio 2026">Julio 2026</option>
-        <option value="Agosto 2026">Agosto 2026</option>
-        <option value="Septiembre 2026">Septiembre 2026</option>
-        <option value="Octubre 2026">Octubre 2026</option>
-        <option value="Noviembre 2026">Noviembre 2026</option>
-        <option value="Diciembre 2026">Diciembre 2026</option>
       </select>
     </div>
 
@@ -737,13 +729,6 @@
     <div class="field-wrap">
       <div class="field-label">MES</div>
       <select class="month-pill" id="res-mes-sel">
-        <option value="Junio 2026">Junio 2026</option>
-        <option value="Julio 2026">Julio 2026</option>
-        <option value="Agosto 2026">Agosto 2026</option>
-        <option value="Septiembre 2026">Septiembre 2026</option>
-        <option value="Octubre 2026">Octubre 2026</option>
-        <option value="Noviembre 2026">Noviembre 2026</option>
-        <option value="Diciembre 2026">Diciembre 2026</option>
       </select>
     </div>
     <button class="submit-btn purple" onclick="cargarResumen()" id="btn-cargar-res" style="margin-top:14px;">
@@ -835,7 +820,14 @@ let gastosLocales = [];
 let catActiva = null;
 let chartDonut = null;
 let chartBars  = null;
+// mesActual → para "Subir mes" (usa el selector de esa vista)
 const mesActual = () => document.getElementById('mes-sel').value;
+// mesActualReal → mes del calendario real, usado en gastos y abonos
+function mesActualReal() {
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const now = new Date();
+  return meses[now.getMonth()] + ' ' + now.getFullYear();
+}
 
 const CATS = [
   { key: '🛒 Comida',                    color: 'green'  },
@@ -886,6 +878,7 @@ function setVista(v) {
   });
   if (v !== 'gasto') ocultarNavCats();
   if (v === 'deuda' && !deudasCargadas) cargarDeudas();
+  if (v === 'mes') cargarRentasMes();
 }
 
 function volverHome() {
@@ -895,6 +888,7 @@ function volverHome() {
     document.getElementById('view-' + k).classList.remove('active');
   });
   ocultarNavCats();
+  deudasCargadas = false; // forzar recarga fresca al volver a entrar
 }
 
 // ── Toast ──
@@ -1220,7 +1214,7 @@ async function registrarAbono(id) {
       'Monto':     { number:    monto },
       'Categoría': { select:    { name: '💳 Abono Deuda' } },
       'Comentario':{ rich_text: [{ text: { content: `Abono a "${d.nombre}" — saldo restante: ${fmt(d.saldo)}` } }] },
-      'Mes':       { rich_text: [{ text: { content: mesActual() } }] },
+      'Mes':       { rich_text: [{ text: { content: mesActualReal() } }] },
       'Fecha':     { date:      { start: hoy } },
     }, { database_id: DS_GASTOS });
 
@@ -1266,7 +1260,21 @@ async function registrarAbono(id) {
   renderDeudas();
 }
 
-function eliminarDeuda(id) { deudas = deudas.filter(x => x.id !== id); renderDeudas(); }
+async function eliminarDeuda(id) {
+  const d = deudas.find(x => x.id === id);
+  if (!d) return;
+  if (!confirm(`¿Eliminar la deuda "${d.nombre}"?\nEsto la archivará en Notion.`)) return;
+  deudas = deudas.filter(x => x.id !== id);
+  renderDeudas();
+  if (d.notionId) {
+    try {
+      // Archivar la página en Notion (equivalente a borrar sin perder el registro)
+      await actualizarPagina(d.notionId, {}, true);
+    } catch(e) {
+      console.warn('No se pudo archivar en Notion:', e.message);
+    }
+  }
+}
 
 function abrirND() {
   document.getElementById('nd-form').classList.add('open');
@@ -1284,7 +1292,7 @@ async function agregarDeuda() {
   const monto      = +document.getElementById('nd-monto').value || 0;
   if (!nombre || monto <= 0) { toast('Completa nombre y monto', false); return; }
 
-  const nuevaDeuda = { id: nextId++, nombre, comentario, inicial: monto, saldo: monto, historial: [], notionId: null, fechaPago: null };
+  const nuevaDeuda = { id: nextId++, nombre, comentario, inicial: monto, saldo: monto, estado: 'Activa', historial: [], notionId: null, fechaPago: null };
   deudas.push(nuevaDeuda);
   cerrarND();
   mostrarGuardando(true);
@@ -1381,7 +1389,7 @@ async function registrarGasto() {
       'Monto':     { number:    monto },
       'Categoría': { select:    { name: catActiva } },
       'Comentario':{ rich_text: [{ text: { content: comentario || 'Sin comentario' } }] },
-      'Mes':       { rich_text: [{ text: { content: mesActual() } }] },
+      'Mes':       { rich_text: [{ text: { content: mesActualReal() } }] },
       'Fecha':     { date:      { start: new Date().toISOString().split('T')[0] } },
     }, { database_id: DS_GASTOS });
     toast(`"${nombre}" guardado en Notion ✓`);
@@ -1661,10 +1669,12 @@ async function crearPagina(properties, parent) {
   return data;
 }
 
-async function actualizarPagina(page_id, properties) {
+async function actualizarPagina(page_id, properties, archivar = false) {
+  const body = { page_id, properties };
+  if (archivar) body.archived = true;
   const resp = await fetch(WORKER_URL + '/notion/update', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ page_id, properties }),
+    body: JSON.stringify(body),
   });
   const data = await resp.json();
   if (!resp.ok) { console.error('Notion update error:', data); throw new Error(data.message||'Error Notion'); }
@@ -1681,7 +1691,31 @@ async function consultarDB(database_id, filter) {
   return data;
 }
 
+// ── Generar opciones de mes dinámicamente ──
+function poblarSelectoresMes() {
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const ahora = new Date();
+  const opciones = [];
+  // 6 meses anteriores + actual + 6 futuros = 13 opciones
+  for (let i = -6; i <= 6; i++) {
+    const d = new Date(ahora.getFullYear(), ahora.getMonth() + i, 1);
+    opciones.push(MESES[d.getMonth()] + ' ' + d.getFullYear());
+  }
+  const actual = MESES[ahora.getMonth()] + ' ' + ahora.getFullYear();
+  ['mes-sel', 'res-mes-sel'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    sel.innerHTML = '';
+    opciones.forEach(op => {
+      const opt = document.createElement('option');
+      opt.value = op; opt.textContent = op;
+      if (op === actual) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+}
+
 // ── Init ──
+poblarSelectoresMes();
 renderCats();
 renderGastos();
 recalcMes();
