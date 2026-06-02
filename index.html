@@ -152,11 +152,17 @@
       align-items: start;
     }
 
-    /* Vista deuda y gasto: columna única centrada */
-    #view-deuda.active,
-    #view-gasto.active {
+    /* Vista deuda: columna única centrada */
+    #view-deuda.active {
       grid-template-columns: minmax(0, 680px);
       justify-content: center;
+    }
+
+    /* Vista gasto: formulario | lista */
+    #view-gasto.active {
+      grid-template-columns: 420px 1fr;
+      gap: 20px;
+      align-items: start;
     }
 
     /* Resumen: resultado ocupa la columna derecha completa */
