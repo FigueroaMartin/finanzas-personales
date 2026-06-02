@@ -473,7 +473,12 @@
   .home-card.c-resumen{ --hc: var(--purple); --hc-dim: var(--purple-dim); }
   .home-card:hover { border-color: var(--hc); background: var(--hc-dim); transform: translateY(-3px); box-shadow: 0 8px 32px #00000050; }
   .home-card-icon { font-size: 38px; line-height: 1; }
-  .home-card-label { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+  .home-card-label {
+    font-size: 14px; font-weight: 700; letter-spacing: -0.01em;
+    background: linear-gradient(135deg, var(--text) 40%, var(--green) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
   .home-card-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 
   @media (min-width: 600px) {
