@@ -425,14 +425,90 @@
   .res-gasto-cat  { font-family: var(--mono); font-size: 10px; color: var(--muted); }
   .res-gasto-name { font-size: 13px; font-weight: 600; }
   .res-gasto-monto{ font-family: var(--mono); font-size: 13px; color: var(--red); }
+
+  /* HOME SCREEN */
+  #home-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
+    padding: 32px 24px;
+    gap: 16px;
+  }
+  #home-screen.hidden { display: none; }
+  .home-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .home-sub {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  .home-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .home-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 28px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(.4,0,.2,1);
+    font-family: var(--sans);
+    text-align: center;
+  }
+  .home-card:hover { background: var(--surface2); transform: translateY(-2px); }
+  .home-card:active { transform: translateY(0); }
+  .home-card.c-mes    { --hc: var(--green);  --hc-dim: var(--green-dim);  }
+  .home-card.c-deuda  { --hc: var(--red);    --hc-dim: var(--red-dim);    }
+  .home-card.c-gasto  { --hc: var(--blue);   --hc-dim: var(--blue-dim);   }
+  .home-card.c-resumen{ --hc: var(--purple); --hc-dim: var(--purple-dim); }
+  .home-card:hover { border-color: var(--hc); background: var(--hc-dim); }
+  .home-card-icon { font-size: 36px; line-height: 1; }
+  .home-card-label { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+  .home-card-sub { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  @media (min-width: 600px) {
+    .home-grid { grid-template-columns: 1fr 1fr; max-width: 560px; gap: 16px; }
+    .home-card { padding: 36px 28px; }
+    .home-card-icon { font-size: 44px; }
+    .home-card-label { font-size: 16px; }
+    .home-title { font-size: 36px; }
+  }
+  @media (min-width: 1024px) {
+    .home-grid { grid-template-columns: repeat(4, 1fr); max-width: 900px; gap: 20px; }
+    .home-card { padding: 48px 32px; gap: 16px; }
+    .home-card-icon { font-size: 52px; }
+    .home-card-label { font-size: 17px; }
+    .home-card-sub { font-size: 11px; }
+    .home-title { font-size: 42px; }
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="logo"><span class="logo-dot"></span>Finanzas</div>
+  <div class="logo" onclick="volverHome()" style="cursor:pointer;">
+    <span class="logo-dot"></span>Finanzas
+  </div>
 
-  <nav class="nav-tabs">
+  <nav class="nav-tabs" style="display:none;">
     <button class="nav-tab" id="btn-v-mes"     onclick="setVista('mes')">
       <span class="tab-icon">📅</span> Subir mes
     </button>
@@ -454,6 +530,34 @@
 <div class="nav-cats-bar" id="nav-cats-bar">
   <span class="nav-cat-label">CAT</span>
   <div class="nav-cats-list" id="nav-cats-list"></div>
+</div>
+
+<!-- ═══════════════ HOME ═══════════════ -->
+<div id="home-screen">
+  <div class="home-title">Finanzas Personales</div>
+  <div class="home-sub">¿Qué quieres hacer hoy?</div>
+  <div class="home-grid">
+    <button class="home-card c-mes"     onclick="setVista('mes')">
+      <span class="home-card-icon">📅</span>
+      <span class="home-card-label">Subir mes</span>
+      <span class="home-card-sub">rentas del mes</span>
+    </button>
+    <button class="home-card c-deuda"   onclick="setVista('deuda')">
+      <span class="home-card-icon">💳</span>
+      <span class="home-card-label">Abonar deuda</span>
+      <span class="home-card-sub">registrar pago</span>
+    </button>
+    <button class="home-card c-gasto"   onclick="setVista('gasto')">
+      <span class="home-card-icon">🧾</span>
+      <span class="home-card-label">Subir gasto</span>
+      <span class="home-card-sub">gasto puntual</span>
+    </button>
+    <button class="home-card c-resumen" onclick="setVista('resumen')">
+      <span class="home-card-icon">📊</span>
+      <span class="home-card-label">Resumen</span>
+      <span class="home-card-sub">ver el mes</span>
+    </button>
+  </div>
 </div>
 
 <!-- ═══════════════ VISTA: MES ═══════════════ -->
@@ -748,12 +852,25 @@ const barW = (p, t) => t === 0 ? '0%' : Math.min(100, Math.round((p / t) * 100))
 
 // ── Vista ──
 function setVista(v) {
+  // Ocultar home, mostrar header nav
+  document.getElementById('home-screen').classList.add('hidden');
+  document.querySelector('.nav-tabs').style.display = 'flex';
+
   ['mes','deuda','gasto','resumen'].forEach(k => {
     document.getElementById('view-' + k).classList.toggle('active', k === v);
     const btn = document.getElementById('btn-v-' + k);
     btn.className = 'nav-tab' + (k === v ? ' active-' + k : '');
   });
   if (v !== 'gasto') ocultarNavCats();
+}
+
+function volverHome() {
+  document.getElementById('home-screen').classList.remove('hidden');
+  document.querySelector('.nav-tabs').style.display = 'none';
+  ['mes','deuda','gasto','resumen'].forEach(k => {
+    document.getElementById('view-' + k).classList.remove('active');
+  });
+  ocultarNavCats();
 }
 
 // ── Toast ──
@@ -1450,8 +1567,6 @@ renderCats();
 renderDeudas();
 renderGastos();
 recalcMes();
-setVista('mes');
-cargarRentasMes();
 </script>
 </body>
 </html>
