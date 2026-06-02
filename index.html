@@ -145,8 +145,7 @@
     .view.active { display: grid; }
 
     /* Vistas con 2 columnas en desktop */
-    #view-mes.active,
-    #view-resumen.active {
+    #view-mes.active {
       grid-template-columns: 1fr 1fr;
       gap: 20px;
       align-items: start;
@@ -165,13 +164,30 @@
       align-items: start;
     }
 
-    /* Resumen: resultado ocupa la columna derecha completa */
-    #res-resultado {
-      display: contents !important;
+    /* ── RESUMEN: dashboard sin scroll ── */
+    #view-resumen.active {
+      display: grid;
+      grid-template-columns: 280px 1fr 300px;
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "sel  kpis  ing"
+        "dot  bars  txs";
+      gap: 16px;
+      height: calc(100vh - 62px);
+      overflow: hidden;
+      align-items: start;
     }
-    #view-resumen .card:first-child { grid-column: 1; }
-    #res-resultado > .card { grid-column: 2; }
-    #res-resultado > .card + .card { grid-column: 2; }
+    #res-resultado { display: contents !important; }
+    #res-card-sel  { grid-area: sel;  align-self: start; }
+    #res-card-kpis { grid-area: kpis; align-self: start; }
+    #res-card-donut{ grid-area: dot;  align-self: start; overflow-y: auto; }
+    #res-card-bars { grid-area: bars; align-self: start; }
+    #res-card-ing  { grid-area: ing;  overflow-y: auto;  }
+    #res-card-txs  { grid-area: txs;  overflow-y: auto;  }
+    /* Las columnas scroll internamente */
+    #res-card-ing, #res-card-txs, #res-card-donut {
+      max-height: calc(100vh - 62px - 20px);
+    }
 
     /* Cards más espaciosas */
     .card { padding: 28px 32px; }
@@ -217,8 +233,10 @@
 
   @media (min-width: 1280px) {
     .view { max-width: 1400px; }
-    #view-mes.active,
-    #view-resumen.active { grid-template-columns: 480px 1fr; }
+    #view-mes.active { grid-template-columns: 480px 1fr; }
+    #view-resumen.active {
+      grid-template-columns: 300px 1fr 340px;
+    }
   }
 
   /* CARD */
@@ -714,7 +732,7 @@
 <!-- ═══════════════ VISTA: RESUMEN ═══════════════ -->
 <div class="view" id="view-resumen">
 
-  <div class="card">
+  <div class="card" id="res-card-sel">
     <div class="card-title">Mes a consultar</div>
     <div class="field-wrap">
       <div class="field-label">MES</div>
@@ -737,7 +755,7 @@
   <div id="res-resultado" style="display:none;">
 
     <!-- KPIs -->
-    <div class="card" style="margin-top:16px;">
+    <div class="card" id="res-card-kpis">
       <div class="card-title">Resumen del mes</div>
       <div class="metrics-grid">
         <div class="metric">
@@ -764,7 +782,7 @@
     </div>
 
     <!-- DONUT: distribución del presupuesto -->
-    <div class="card">
+    <div class="card" id="res-card-donut">
       <div class="card-title">¿En qué se fue el dinero?</div>
       <div class="chart-donut-wrap">
         <canvas id="chart-donut"></canvas>
@@ -773,7 +791,7 @@
     </div>
 
     <!-- BARRAS: gastos reales por categoría -->
-    <div class="card">
+    <div class="card" id="res-card-bars">
       <div class="card-title">Gastos por categoría <span class="card-title-badge" id="res-cats-count">0 categorías</span></div>
       <div class="chart-wrap">
         <canvas id="chart-bars"></canvas>
@@ -781,7 +799,7 @@
     </div>
 
     <!-- INGRESOS DEL MES -->
-    <div class="card">
+    <div class="card" id="res-card-ing">
       <div class="card-title">Ingresos del mes <span class="card-title-badge" id="res-ing-count">0 registros</span></div>
       <div id="res-ing-list">
         <div class="empty-state">Sin ingresos registrados</div>
@@ -789,7 +807,7 @@
     </div>
 
     <!-- LISTA DE TRANSACCIONES -->
-    <div class="card">
+    <div class="card" id="res-card-txs">
       <div class="card-title">Transacciones del mes <span class="card-title-badge" id="res-tx-count">0</span></div>
       <div id="res-tx-list">
         <div class="empty-state">Sin transacciones</div>
