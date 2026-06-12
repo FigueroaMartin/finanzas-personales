@@ -102,6 +102,7 @@
   .nav-tab.active-gasto   { color: var(--blue);   border-bottom-color: var(--blue);   }
   .nav-tab.active-resumen { color: var(--purple); border-bottom-color: var(--purple); }
   .nav-tab.active-ahorro  { color: var(--amber);  border-bottom-color: var(--amber);  }
+  .nav-tab.active-resahorro { color: var(--amber); border-bottom-color: var(--amber); }
 
   /* ── BARRA CATS (oculta, ya no se usa para subir) ── */
   .nav-cats-bar { display: none; }
@@ -124,17 +125,17 @@
     #view-deuda.active  { grid-template-columns: minmax(0, 700px); justify-content: center; }
     #view-gasto.active  { grid-template-columns: 440px 1fr; gap: 24px; align-items: start; }
     #view-ahorro.active { grid-template-columns: 440px 1fr; gap: 24px; align-items: start; }
+    #view-resahorro.active { grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
 
     #view-resumen.active {
       display: grid;
       grid-template-columns: 290px 1fr 310px;
-      grid-template-rows: auto auto 1fr auto;
-      grid-template-areas: "ttl ttl ttl" "sel kpis ing" "dot bars txs" "aho aho aho";
-      gap: 18px; min-height: calc(100vh - 62px); align-items: start;
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas: "ttl ttl ttl" "sel kpis ing" "dot bars txs";
+      gap: 18px; height: calc(100vh - 62px); overflow: hidden; align-items: start;
     }
     #view-resumen .view-title { grid-area: ttl; margin-bottom: 0; }
     #res-resultado { display: contents !important; }
-    #res-card-aho   { grid-area: aho; }
     #res-card-sel   { grid-area: sel;  align-self: start; }
     #res-card-kpis  { grid-area: kpis; align-self: start; }
     #res-card-donut { grid-area: dot;  align-self: start; overflow-y: auto; }
@@ -493,7 +494,8 @@
   .home-card.c-deuda  { --hc: var(--red);    --hc-dim: var(--red-dim);    }
   .home-card.c-gasto  { --hc: var(--blue);   --hc-dim: var(--blue-dim);   }
   .home-card.c-resumen{ --hc: var(--purple); --hc-dim: var(--purple-dim); }
-  .home-card.c-ahorro { --hc: var(--amber);  --hc-dim: var(--amber-dim);  grid-column: 1 / -1; }
+  .home-card.c-ahorro { --hc: var(--amber);  --hc-dim: var(--amber-dim);  }
+  .home-card.c-resahorro { --hc: var(--amber); --hc-dim: var(--amber-dim); }
   .home-card:hover { border-color: var(--hc); background: var(--hc-dim); transform: translateY(-3px); box-shadow: 0 8px 32px #00000050; }
   .home-card-icon { font-size: 38px; line-height: 1; }
   .home-card-label {
@@ -512,9 +514,8 @@
     .home-title { font-size: 38px; }
   }
   @media (min-width: 1024px) {
-    .home-grid { grid-template-columns: repeat(5, 1fr); max-width: 1180px; gap: 20px; }
+    .home-grid { grid-template-columns: repeat(3, 1fr); max-width: 880px; gap: 20px; }
     .home-card { padding: 48px 28px; gap: 16px; }
-    .home-card.c-ahorro { grid-column: auto; }
     .home-card-icon { font-size: 54px; }
     .home-card-label { font-size: 17px; }
     .home-card-sub { font-size: 11px; }
@@ -544,6 +545,9 @@
     </button>
     <button class="nav-tab" id="btn-v-ahorro" onclick="setVista('ahorro')">
       <span class="tab-icon">💰</span> Ahorro
+    </button>
+    <button class="nav-tab" id="btn-v-resahorro" onclick="setVista('resahorro')">
+      <span class="tab-icon">📈</span> Resumen ahorro
     </button>
   </nav>
 
@@ -585,6 +589,11 @@
       <span class="home-card-icon">💰</span>
       <span class="home-card-label">Ahorro</span>
       <span class="home-card-sub">gestionar fondos</span>
+    </button>
+    <button class="home-card c-resahorro" onclick="setVista('resahorro')">
+      <span class="home-card-icon">📈</span>
+      <span class="home-card-label">Resumen ahorro</span>
+      <span class="home-card-sub">estado de fondos</span>
     </button>
   </div>
 </div>
@@ -811,14 +820,26 @@
       </div>
     </div>
 
-    <!-- RESUMEN DE AHORRO -->
-    <div class="card" id="res-card-aho">
-      <div class="card-title">Resumen de ahorro <span class="card-title-badge" id="res-aho-count">0 movimientos</span></div>
-      <div id="res-aho-body">
-        <div class="empty-state">Sin datos de ahorro</div>
-      </div>
-    </div>
+  </div>
+</div>
 
+<!-- ═══════════════ VISTA: RESUMEN AHORRO ═══════════════ -->
+<div class="view" id="view-resahorro">
+  <div class="view-title">Resumen ahorro</div>
+
+  <div class="card" id="resaho-card-sel">
+    <div class="card-title">Mes a consultar</div>
+    <div class="field-wrap">
+      <div class="field-label">MES</div>
+      <select class="month-pill" id="resaho-mes-sel" onchange="cargarResumenAhorro()"></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Estado del ahorro <span class="card-title-badge" id="res-aho-count">— movimientos</span></div>
+    <div id="res-aho-body">
+      <div class="empty-state"><div class="big">💰</div>Cargando…</div>
+    </div>
   </div>
 </div>
 
@@ -957,7 +978,7 @@ function setVista(v) {
   document.getElementById('home-screen').classList.add('hidden');
   document.querySelector('.nav-tabs').style.display = 'flex';
 
-  ['mes','deuda','gasto','resumen','ahorro'].forEach(k => {
+  ['mes','deuda','gasto','resumen','ahorro','resahorro'].forEach(k => {
     document.getElementById('view-' + k).classList.toggle('active', k === v);
     const btn = document.getElementById('btn-v-' + k);
     btn.className = 'nav-tab' + (k === v ? ' active-' + k : '');
@@ -966,12 +987,13 @@ function setVista(v) {
   if (v === 'deuda' && !deudasCargadas) cargarDeudas();
   if (v === 'mes') cargarRentasMes();
   if (v === 'ahorro') cargarAhorro();
+  if (v === 'resahorro') cargarResumenAhorro();
 }
 
 function volverHome() {
   document.getElementById('home-screen').classList.remove('hidden');
   document.querySelector('.nav-tabs').style.display = 'none';
-  ['mes','deuda','gasto','resumen','ahorro'].forEach(k => {
+  ['mes','deuda','gasto','resumen','ahorro','resahorro'].forEach(k => {
     document.getElementById('view-' + k).classList.remove('active');
   });
   ocultarNavCats();
@@ -1650,10 +1672,9 @@ async function cargarResumen() {
   btn.disabled = true; btn.textContent = 'Cargando…'; mostrarGuardando(true);
 
   try {
-    const [mensualResp, gastosResp, ahorroResp] = await Promise.all([
+    const [mensualResp, gastosResp] = await Promise.all([
       consultarDB(DS_MENSUAL, { property: 'Mes', title:     { equals: mes } }),
       consultarDB(DS_GASTOS,  { property: 'Mes', rich_text: { equals: mes } }),
-      consultarDB(DS_AHORRO),
     ]);
 
     const mensualPages = mensualResp.results || [];
@@ -1695,7 +1716,6 @@ async function cargarResumen() {
     const libre  = ingreso - ahorro - totalGastado;
 
     renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList, ingList, mes });
-    renderResumenAhorro(ahorroResp.results || [], mes);
   } catch(e) {
     console.error(e);
     toast('Error al cargar datos de Notion', false);
@@ -1874,7 +1894,20 @@ function renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList
   });
 }
 
-// ── Resumen de ahorro (dentro de la vista Resumen) ──
+// ── Resumen de ahorro (vista propia) ──
+async function cargarResumenAhorro() {
+  const el = document.getElementById('res-aho-body');
+  el.innerHTML = '<div class="empty-state" style="padding:20px 0;"><span class="spin" style="font-size:20px;display:inline-block;">⟳</span></div>';
+  mostrarGuardando(true);
+  try {
+    const data = await consultarDB(DS_AHORRO);
+    renderResumenAhorro(data.results || [], document.getElementById('resaho-mes-sel').value);
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><div class="big">⚠️</div>Error al cargar: ${e.message}</div>`;
+  }
+  mostrarGuardando(false);
+}
+
 function renderResumenAhorro(pages, mes) {
   const el = document.getElementById('res-aho-body');
   document.getElementById('res-aho-count').textContent = pages.length + ' movimiento' + (pages.length !== 1 ? 's' : '');
@@ -1887,18 +1920,25 @@ function renderResumenAhorro(pages, mes) {
   // Total histórico + movimientos del mes seleccionado
   let total = 0, mesDep = 0, mesRet = 0;
   const porCat = {};
+  const movsMes = [];
   pages.forEach(page => {
     const p     = page.properties;
     const monto = p['Monto']?.number || 0;
     const tipo  = p['Tipo']?.select?.name || 'Depósito';
     const cat   = p['Categoría']?.select?.name || '📦 Otros';
     const m     = p['Mes']?.rich_text?.[0]?.plain_text || '';
+    const nom   = p['Movimiento']?.title?.[0]?.plain_text || '—';
+    const fecha = p['Fecha']?.date?.start || '';
     const signo = tipo === 'Retiro' ? -1 : 1;
     total += signo * monto;
     porCat[cat] = (porCat[cat] || 0) + signo * monto;
-    if (m === mes) { if (signo > 0) mesDep += monto; else mesRet += monto; }
+    if (m === mes) {
+      if (signo > 0) mesDep += monto; else mesRet += monto;
+      movsMes.push({ nom, monto, cat, fecha, signo });
+    }
   });
   const mesNeto = mesDep - mesRet;
+  movsMes.sort((a, b) => b.fecha.localeCompare(a.fecha));
 
   // Desglose por fondo
   let fondos = '';
@@ -1920,33 +1960,55 @@ function renderResumenAhorro(pages, mes) {
     </div>`;
   });
 
+  // Movimientos del mes
+  let movsHtml = '';
+  movsMes.forEach(m => {
+    const color = AHORRO_COLOR_MAP[m.cat] || '#5a7862';
+    movsHtml += `<div class="res-gasto-item">
+      <div class="res-gasto-left">
+        <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+        <div>
+          <div class="res-gasto-name">${m.nom}</div>
+          <div class="res-gasto-cat">${m.cat}${m.fecha ? ' · ' + m.fecha : ''}</div>
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${m.signo > 0 ? 'var(--green)' : 'var(--red)'};">${m.signo > 0 ? '+' : '-'}${fmt(m.monto)}</div>
+    </div>`;
+  });
+
   el.innerHTML = `
     <div class="res-aho-grid">
-      <div class="metrics-grid">
-        <div class="metric">
-          <div class="metric-lbl">TOTAL AHORRADO</div>
-          <div class="metric-val" style="color:var(--amber);">${fmt(total)}</div>
-          <div class="metric-sub">histórico</div>
+      <div>
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-lbl">TOTAL AHORRADO</div>
+            <div class="metric-val" style="color:var(--amber);">${fmt(total)}</div>
+            <div class="metric-sub">histórico</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">AHORRO DEL MES</div>
+            <div class="metric-val" style="color:${mesNeto >= 0 ? 'var(--green)' : 'var(--red)'};">${fmtS(mesNeto)}</div>
+            <div class="metric-sub">${mes}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">DEPOSITADO</div>
+            <div class="metric-val" style="color:var(--green);">${fmt(mesDep)}</div>
+            <div class="metric-sub">este mes</div>
+          </div>
+          <div class="metric">
+            <div class="metric-lbl">RETIRADO</div>
+            <div class="metric-val" style="color:var(--red);">${fmt(mesRet)}</div>
+            <div class="metric-sub">este mes</div>
+          </div>
         </div>
-        <div class="metric">
-          <div class="metric-lbl">AHORRO DEL MES</div>
-          <div class="metric-val" style="color:${mesNeto >= 0 ? 'var(--green)' : 'var(--red)'};">${fmtS(mesNeto)}</div>
-          <div class="metric-sub">${mes}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-lbl">DEPOSITADO</div>
-          <div class="metric-val" style="color:var(--green);">${fmt(mesDep)}</div>
-          <div class="metric-sub">este mes</div>
-        </div>
-        <div class="metric">
-          <div class="metric-lbl">RETIRADO</div>
-          <div class="metric-val" style="color:var(--red);">${fmt(mesRet)}</div>
-          <div class="metric-sub">este mes</div>
+        <div style="margin-top:18px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Por fondo</div>
+          ${fondos || '<div class="empty-state" style="padding:16px 0;">Sin fondos con saldo</div>'}
         </div>
       </div>
       <div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Por fondo</div>
-        ${fondos || '<div class="empty-state" style="padding:16px 0;">Sin fondos con saldo</div>'}
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Movimientos de ${mes}</div>
+        ${movsHtml || '<div class="empty-state" style="padding:16px 0;"><div class="big">📭</div>Sin movimientos en ' + mes + '</div>'}
       </div>
     </div>
   `;
@@ -1999,7 +2061,7 @@ function poblarSelectoresMes() {
     opciones.push(MESES[d.getMonth()] + ' ' + d.getFullYear());
   }
   const actual = MESES[ahora.getMonth()] + ' ' + ahora.getFullYear();
-  ['mes-sel', 'res-mes-sel'].forEach(selId => {
+  ['mes-sel', 'res-mes-sel', 'resaho-mes-sel'].forEach(selId => {
     const sel = document.getElementById(selId);
     sel.innerHTML = '';
     opciones.forEach(op => {
