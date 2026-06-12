@@ -101,6 +101,7 @@
   .nav-tab.active-deuda   { color: var(--red);    border-bottom-color: var(--red);    }
   .nav-tab.active-gasto   { color: var(--blue);   border-bottom-color: var(--blue);   }
   .nav-tab.active-resumen { color: var(--purple); border-bottom-color: var(--purple); }
+  .nav-tab.active-ahorro  { color: var(--amber);  border-bottom-color: var(--amber);  }
 
   /* ── BARRA CATS (oculta, ya no se usa para subir) ── */
   .nav-cats-bar { display: none; }
@@ -119,9 +120,10 @@
     .view { max-width: 1400px; padding: 32px 48px 80px; display: none; }
     .view.active { display: grid; }
 
-    #view-mes.active   { grid-template-columns: 480px 1fr; gap: 24px; align-items: start; }
-    #view-deuda.active { grid-template-columns: minmax(0, 700px); justify-content: center; }
-    #view-gasto.active { grid-template-columns: 440px 1fr; gap: 24px; align-items: start; }
+    #view-mes.active    { grid-template-columns: 480px 1fr; gap: 24px; align-items: start; }
+    #view-deuda.active  { grid-template-columns: minmax(0, 700px); justify-content: center; }
+    #view-gasto.active  { grid-template-columns: 440px 1fr; gap: 24px; align-items: start; }
+    #view-ahorro.active { grid-template-columns: 440px 1fr; gap: 24px; align-items: start; }
 
     #view-resumen.active {
       display: grid;
@@ -420,6 +422,18 @@
   .libre-strip-val { font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--green); }
   .libre-strip.neg .libre-strip-val { color: var(--red); }
 
+  /* ── TOGGLE DEPÓSITO / RETIRO ── */
+  .tipo-row { display: flex; gap: 6px; }
+  .tipo-btn {
+    flex: 1; font-family: var(--sans); font-size: 12px; font-weight: 700;
+    padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s;
+    text-align: center;
+  }
+  .tipo-btn:hover { border-color: var(--border2); color: var(--text); }
+  .tipo-btn.active-dep { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+  .tipo-btn.active-ret { border-color: var(--red);   background: var(--red-dim);   color: var(--red);   }
+
   /* ── VIEW TITLE (igual gradiente que home) ── */
   .view-title {
     font-size: 28px; font-weight: 800; letter-spacing: -0.04em;
@@ -471,6 +485,7 @@
   .home-card.c-deuda  { --hc: var(--red);    --hc-dim: var(--red-dim);    }
   .home-card.c-gasto  { --hc: var(--blue);   --hc-dim: var(--blue-dim);   }
   .home-card.c-resumen{ --hc: var(--purple); --hc-dim: var(--purple-dim); }
+  .home-card.c-ahorro { --hc: var(--amber);  --hc-dim: var(--amber-dim);  grid-column: 1 / -1; }
   .home-card:hover { border-color: var(--hc); background: var(--hc-dim); transform: translateY(-3px); box-shadow: 0 8px 32px #00000050; }
   .home-card-icon { font-size: 38px; line-height: 1; }
   .home-card-label {
@@ -489,8 +504,9 @@
     .home-title { font-size: 38px; }
   }
   @media (min-width: 1024px) {
-    .home-grid { grid-template-columns: repeat(4, 1fr); max-width: 960px; gap: 20px; }
-    .home-card { padding: 48px 32px; gap: 16px; }
+    .home-grid { grid-template-columns: repeat(5, 1fr); max-width: 1180px; gap: 20px; }
+    .home-card { padding: 48px 28px; gap: 16px; }
+    .home-card.c-ahorro { grid-column: auto; }
     .home-card-icon { font-size: 54px; }
     .home-card-label { font-size: 17px; }
     .home-card-sub { font-size: 11px; }
@@ -517,6 +533,9 @@
     </button>
     <button class="nav-tab" id="btn-v-resumen" onclick="setVista('resumen')">
       <span class="tab-icon">📊</span> Resumen
+    </button>
+    <button class="nav-tab" id="btn-v-ahorro" onclick="setVista('ahorro')">
+      <span class="tab-icon">💰</span> Ahorro
     </button>
   </nav>
 
@@ -553,6 +572,11 @@
       <span class="home-card-icon">📊</span>
       <span class="home-card-label">Resumen</span>
       <span class="home-card-sub">ver el mes</span>
+    </button>
+    <button class="home-card c-ahorro" onclick="setVista('ahorro')">
+      <span class="home-card-icon">💰</span>
+      <span class="home-card-label">Ahorro</span>
+      <span class="home-card-sub">gestionar fondos</span>
     </button>
   </div>
 </div>
@@ -782,6 +806,50 @@
   </div>
 </div>
 
+<!-- ═══════════════ VISTA: AHORRO ═══════════════ -->
+<div class="view" id="view-ahorro">
+  <div class="view-title">Ahorro</div>
+
+  <!-- Formulario de movimiento -->
+  <div class="card">
+    <div class="card-title">Registrar movimiento <span class="card-title-badge">→ Notion</span></div>
+    <div class="gasto-form">
+      <div class="field-wrap">
+        <div class="field-label">TIPO DE MOVIMIENTO</div>
+        <div class="tipo-row">
+          <button class="tipo-btn active-dep" id="tipo-dep" onclick="setTipoAhorro('Depósito')">↓ Depósito</button>
+          <button class="tipo-btn" id="tipo-ret" onclick="setTipoAhorro('Retiro')">↑ Retiro</button>
+        </div>
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">CONCEPTO</div>
+        <input class="gasto-input" type="text" id="ah-nombre" placeholder="ej: Ahorro mensual junio…" />
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">MONTO</div>
+        <input class="gasto-input" type="number" id="ah-monto" placeholder="$0" style="text-align:right;" />
+      </div>
+      <div class="field-wrap">
+        <div class="field-label">COMENTARIO (OPCIONAL)</div>
+        <input class="gasto-input" type="text" id="ah-comentario" placeholder="Detalle adicional…" />
+      </div>
+      <div class="cats-section">
+        <div class="field-label" style="margin-bottom:10px;">FONDO / CATEGORÍA</div>
+        <div class="gasto-cats" id="cats-ahorro-wrap"></div>
+      </div>
+      <button class="submit-btn green" onclick="guardarAhorro()" id="btn-ahorro" style="margin-top:16px;">Guardar movimiento ↑</button>
+    </div>
+  </div>
+
+  <!-- Resumen de ahorro -->
+  <div class="card">
+    <div class="card-title">Resumen de ahorro <span class="card-title-badge" id="ahorro-count">— movimientos</span></div>
+    <div id="ahorro-resumen">
+      <div class="empty-state"><div class="big">💰</div>Cargando ahorros…</div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">
   <span class="toast-dot" id="toast-dot"></span>
   <span id="toast-msg"></span>
@@ -791,6 +859,7 @@
 const DS_MENSUAL = '8532f8c4-d3f2-45f4-9e0d-ac19158ae83f';
 const DS_DEUDAS  = 'feca9282-283e-4324-9d7b-68fba6f05cce';
 const DS_GASTOS  = '970d4c5f-b865-45ce-b5ba-20bf2883cd98';
+const DS_AHORRO  = 'a6d4d410-b3bd-48ff-8bc1-915f3b3be8ee';
 const WORKER_URL = 'https://finanzas-worker.martinfigueroaa.workers.dev';
 
 let deudas = [];
@@ -798,6 +867,9 @@ let deudasCargadas = false;
 let nextId = 1;
 let gastosLocales = [];
 let catActiva = null;
+let catAhorroActiva = null;
+let tipoAhorro = 'Depósito';
+let ahorroTotalCache = 0;
 let chartDonut = null;
 let chartBars  = null;
 // mesActual → para "Subir mes" (usa el selector de esa vista)
@@ -827,6 +899,22 @@ const CAT_COLORS = {
   green: '#22c55e', blue: '#3b82f6', purple: '#a855f7', red: '#ef4444', amber: '#f59e0b'
 };
 
+// Categorías de ahorro (fondos)
+const CATS_AHORRO = [
+  { key: '🏦 Emergencia', color: 'blue'   },
+  { key: '📈 Inversión',  color: 'green'  },
+  { key: '✈️ Viajes',     color: 'purple' },
+  { key: '🎯 Metas',      color: 'amber'  },
+  { key: '📦 Otros',      color: 'green'  },
+];
+const AHORRO_COLOR_MAP = {
+  '🏦 Emergencia': '#3b82f6',
+  '📈 Inversión':  '#22c55e',
+  '✈️ Viajes':     '#a855f7',
+  '🎯 Metas':      '#f59e0b',
+  '📦 Otros':      '#5a7862',
+};
+
 // Mapa de nombre de categoría → color hex para los gráficos
 const CAT_COLOR_MAP = {
   '🛒 Comida':                    '#f59e0b',
@@ -853,7 +941,7 @@ function setVista(v) {
   document.getElementById('home-screen').classList.add('hidden');
   document.querySelector('.nav-tabs').style.display = 'flex';
 
-  ['mes','deuda','gasto','resumen'].forEach(k => {
+  ['mes','deuda','gasto','resumen','ahorro'].forEach(k => {
     document.getElementById('view-' + k).classList.toggle('active', k === v);
     const btn = document.getElementById('btn-v-' + k);
     btn.className = 'nav-tab' + (k === v ? ' active-' + k : '');
@@ -861,12 +949,13 @@ function setVista(v) {
   if (v !== 'gasto') ocultarNavCats();
   if (v === 'deuda' && !deudasCargadas) cargarDeudas();
   if (v === 'mes') cargarRentasMes();
+  if (v === 'ahorro') cargarAhorro();
 }
 
 function volverHome() {
   document.getElementById('home-screen').classList.remove('hidden');
   document.querySelector('.nav-tabs').style.display = 'none';
-  ['mes','deuda','gasto','resumen'].forEach(k => {
+  ['mes','deuda','gasto','resumen','ahorro'].forEach(k => {
     document.getElementById('view-' + k).classList.remove('active');
   });
   ocultarNavCats();
@@ -1370,6 +1459,172 @@ function renderGastos() {
 }
 
 // ════════════════════════════════════════════
+// AHORRO
+// ════════════════════════════════════════════
+
+function renderCatsAhorro() {
+  const wrap = document.getElementById('cats-ahorro-wrap');
+  wrap.innerHTML = '';
+  CATS_AHORRO.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn'; btn.dataset.color = c.color; btn.textContent = c.key;
+    btn.onclick = () => seleccionarCatAhorro(c.key);
+    wrap.appendChild(btn);
+  });
+}
+
+function seleccionarCatAhorro(key) {
+  catAhorroActiva = key;
+  document.querySelectorAll('#cats-ahorro-wrap .cat-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === key);
+  });
+}
+
+function setTipoAhorro(t) {
+  tipoAhorro = t;
+  document.getElementById('tipo-dep').className = 'tipo-btn' + (t === 'Depósito' ? ' active-dep' : '');
+  document.getElementById('tipo-ret').className = 'tipo-btn' + (t === 'Retiro'   ? ' active-ret' : '');
+  const btn = document.getElementById('btn-ahorro');
+  btn.className = 'submit-btn ' + (t === 'Depósito' ? 'green' : 'red');
+}
+
+async function guardarAhorro() {
+  const nombre     = document.getElementById('ah-nombre').value.trim();
+  const monto      = +document.getElementById('ah-monto').value || 0;
+  const comentario = document.getElementById('ah-comentario').value.trim();
+  if (!nombre)          { toast('Ingresa el concepto del movimiento', false); return; }
+  if (monto <= 0)       { toast('Ingresa un monto válido', false); return; }
+  if (!catAhorroActiva) { toast('Selecciona un fondo / categoría', false); return; }
+  if (tipoAhorro === 'Retiro' && monto > ahorroTotalCache) {
+    toast(`El retiro (${fmt(monto)}) supera el total ahorrado (${fmt(ahorroTotalCache)})`, false);
+    return;
+  }
+
+  const btn = document.getElementById('btn-ahorro');
+  btn.disabled = true; btn.textContent = 'Guardando…'; mostrarGuardando(true);
+  try {
+    await crearPagina({
+      'Movimiento': { title:     [{ text: { content: nombre } }] },
+      'Monto':      { number:    monto },
+      'Tipo':       { select:    { name: tipoAhorro } },
+      'Categoría':  { select:    { name: catAhorroActiva } },
+      'Comentario': { rich_text: [{ text: { content: comentario || 'Sin comentario' } }] },
+      'Mes':        { rich_text: [{ text: { content: mesActualReal() } }] },
+      'Fecha':      { date:      { start: new Date().toISOString().split('T')[0] } },
+    }, { database_id: DS_AHORRO });
+    toast(`${tipoAhorro} de ${fmt(monto)} guardado ✓`);
+    document.getElementById('ah-nombre').value = '';
+    document.getElementById('ah-monto').value  = '';
+    document.getElementById('ah-comentario').value = '';
+    catAhorroActiva = null;
+    document.querySelectorAll('#cats-ahorro-wrap .cat-btn').forEach(b => b.classList.remove('active'));
+    cargarAhorro();
+  } catch(e) { toast(`Error al guardar: ${e.message || 'revisa la conexión'}`, false); }
+  btn.disabled = false; btn.textContent = 'Guardar movimiento ↑'; mostrarGuardando(false);
+}
+
+async function cargarAhorro() {
+  const el    = document.getElementById('ahorro-resumen');
+  const count = document.getElementById('ahorro-count');
+  el.innerHTML = '<div class="empty-state" style="padding:20px 0;"><span class="spin" style="font-size:20px;display:inline-block;">⟳</span></div>';
+  try {
+    const data  = await consultarDB(DS_AHORRO);
+    const pages = data.results || [];
+    count.textContent = pages.length + ' movimiento' + (pages.length !== 1 ? 's' : '');
+
+    if (pages.length === 0) {
+      ahorroTotalCache = 0;
+      el.innerHTML = '<div class="empty-state"><div class="big">💰</div>Aún no hay movimientos de ahorro<br>Registra tu primer depósito</div>';
+      return;
+    }
+
+    // Calcular total y por categoría (depósitos suman, retiros restan)
+    let total = 0, totalDep = 0, totalRet = 0;
+    const porCat = {};
+    const movs = [];
+    pages.forEach(page => {
+      const p     = page.properties;
+      const monto = p['Monto']?.number || 0;
+      const tipo  = p['Tipo']?.select?.name || 'Depósito';
+      const cat   = p['Categoría']?.select?.name || '📦 Otros';
+      const nom   = p['Movimiento']?.title?.[0]?.plain_text || '—';
+      const fecha = p['Fecha']?.date?.start || '';
+      const signo = tipo === 'Retiro' ? -1 : 1;
+      total += signo * monto;
+      if (signo > 0) totalDep += monto; else totalRet += monto;
+      porCat[cat] = (porCat[cat] || 0) + signo * monto;
+      movs.push({ nom, monto, tipo, cat, fecha, signo });
+    });
+    ahorroTotalCache = total;
+    movs.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+    // Hero + KPIs
+    let html = `
+      <div style="text-align:center;padding:18px 0 16px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Total ahorrado</div>
+        <div style="font-size:40px;font-weight:800;letter-spacing:-0.04em;color:var(--amber);line-height:1;">${fmt(total)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+        <div style="background:var(--green-dim);border:1px solid var(--green);border-radius:var(--radius-sm);padding:13px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:0.08em;">↓ DEPOSITADO</div>
+          <div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--green);margin-top:4px;">${fmt(totalDep)}</div>
+        </div>
+        <div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--radius-sm);padding:13px;">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--red);letter-spacing:0.08em;">↑ RETIRADO</div>
+          <div style="font-family:var(--mono);font-size:16px;font-weight:500;color:var(--red);margin-top:4px;">${fmt(totalRet)}</div>
+        </div>
+      </div>
+    `;
+
+    // Desglose por fondo
+    const cats = Object.entries(porCat).filter(([,v]) => v !== 0).sort((a,b) => b[1] - a[1]);
+    if (cats.length > 0) {
+      html += `<div style="border-top:1px solid var(--border);padding-top:14px;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Por fondo</div>`;
+      cats.forEach(([cat, val]) => {
+        const p = total > 0 ? Math.max(0, Math.round((val / total) * 100)) : 0;
+        const color = AHORRO_COLOR_MAP[cat] || '#5a7862';
+        html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${cat}</div>
+            <div style="height:3px;background:var(--surface2);border-radius:99px;">
+              <div style="height:3px;width:${Math.min(100,p)}%;background:${color};border-radius:99px;transition:width .4s;"></div>
+            </div>
+          </div>
+          <div style="text-align:right;margin-left:16px;">
+            <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${val < 0 ? 'var(--red)' : 'var(--text)'};">${fmtS(val)}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${p}%</div>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // Movimientos recientes
+    html += `<div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Movimientos recientes</div>`;
+    movs.slice(0, 8).forEach(m => {
+      const color = AHORRO_COLOR_MAP[m.cat] || '#5a7862';
+      html += `<div class="res-gasto-item">
+        <div class="res-gasto-left">
+          <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+          <div>
+            <div class="res-gasto-name">${m.nom}</div>
+            <div class="res-gasto-cat">${m.cat}${m.fecha ? ' · ' + m.fecha : ''}</div>
+          </div>
+        </div>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${m.signo > 0 ? 'var(--green)' : 'var(--red)'};">${m.signo > 0 ? '+' : '-'}${fmt(m.monto)}</div>
+      </div>`;
+    });
+    html += '</div>';
+
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<div class="empty-state"><div class="big">⚠️</div>Error al cargar ahorros: ${e.message}</div>`;
+  }
+}
+
+// ════════════════════════════════════════════
 // RESUMEN MENSUAL
 // ════════════════════════════════════════════
 
@@ -1663,6 +1918,7 @@ function poblarSelectoresMes() {
 // ── Init ──
 poblarSelectoresMes();
 renderCats();
+renderCatsAhorro();
 renderGastos();
 recalcMes();
 </script>
