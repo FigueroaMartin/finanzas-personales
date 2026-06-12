@@ -128,12 +128,13 @@
     #view-resumen.active {
       display: grid;
       grid-template-columns: 290px 1fr 310px;
-      grid-template-rows: auto auto 1fr;
-      grid-template-areas: "ttl ttl ttl" "sel kpis ing" "dot bars txs";
-      gap: 18px; height: calc(100vh - 62px); overflow: hidden; align-items: start;
+      grid-template-rows: auto auto 1fr auto;
+      grid-template-areas: "ttl ttl ttl" "sel kpis ing" "dot bars txs" "aho aho aho";
+      gap: 18px; min-height: calc(100vh - 62px); align-items: start;
     }
     #view-resumen .view-title { grid-area: ttl; margin-bottom: 0; }
     #res-resultado { display: contents !important; }
+    #res-card-aho   { grid-area: aho; }
     #res-card-sel   { grid-area: sel;  align-self: start; }
     #res-card-kpis  { grid-area: kpis; align-self: start; }
     #res-card-donut { grid-area: dot;  align-self: start; overflow-y: auto; }
@@ -421,6 +422,13 @@
   .libre-strip.neg .libre-strip-label { color: var(--red); }
   .libre-strip-val { font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--green); }
   .libre-strip.neg .libre-strip-val { color: var(--red); }
+
+  /* ── RESUMEN DE AHORRO (en vista Resumen) ── */
+  .res-aho-grid { display: grid; gap: 18px; }
+  @media (min-width: 1024px) {
+    .res-aho-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+    .res-aho-grid .metrics-grid { margin-bottom: 0; }
+  }
 
   /* ── TOGGLE DEPÓSITO / RETIRO ── */
   .tipo-row { display: flex; gap: 6px; }
@@ -800,6 +808,14 @@
       <div class="card-title">Transacciones del mes <span class="card-title-badge" id="res-tx-count">0</span></div>
       <div id="res-tx-list">
         <div class="empty-state">Sin transacciones</div>
+      </div>
+    </div>
+
+    <!-- RESUMEN DE AHORRO -->
+    <div class="card" id="res-card-aho">
+      <div class="card-title">Resumen de ahorro <span class="card-title-badge" id="res-aho-count">0 movimientos</span></div>
+      <div id="res-aho-body">
+        <div class="empty-state">Sin datos de ahorro</div>
       </div>
     </div>
 
@@ -1634,9 +1650,10 @@ async function cargarResumen() {
   btn.disabled = true; btn.textContent = 'Cargando…'; mostrarGuardando(true);
 
   try {
-    const [mensualResp, gastosResp] = await Promise.all([
+    const [mensualResp, gastosResp, ahorroResp] = await Promise.all([
       consultarDB(DS_MENSUAL, { property: 'Mes', title:     { equals: mes } }),
       consultarDB(DS_GASTOS,  { property: 'Mes', rich_text: { equals: mes } }),
+      consultarDB(DS_AHORRO),
     ]);
 
     const mensualPages = mensualResp.results || [];
@@ -1678,6 +1695,7 @@ async function cargarResumen() {
     const libre  = ingreso - ahorro - totalGastado;
 
     renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList, ingList, mes });
+    renderResumenAhorro(ahorroResp.results || [], mes);
   } catch(e) {
     console.error(e);
     toast('Error al cargar datos de Notion', false);
@@ -1854,6 +1872,84 @@ function renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList
     `;
     txEl.appendChild(div);
   });
+}
+
+// ── Resumen de ahorro (dentro de la vista Resumen) ──
+function renderResumenAhorro(pages, mes) {
+  const el = document.getElementById('res-aho-body');
+  document.getElementById('res-aho-count').textContent = pages.length + ' movimiento' + (pages.length !== 1 ? 's' : '');
+
+  if (pages.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="big">💰</div>Sin movimientos de ahorro aún</div>';
+    return;
+  }
+
+  // Total histórico + movimientos del mes seleccionado
+  let total = 0, mesDep = 0, mesRet = 0;
+  const porCat = {};
+  pages.forEach(page => {
+    const p     = page.properties;
+    const monto = p['Monto']?.number || 0;
+    const tipo  = p['Tipo']?.select?.name || 'Depósito';
+    const cat   = p['Categoría']?.select?.name || '📦 Otros';
+    const m     = p['Mes']?.rich_text?.[0]?.plain_text || '';
+    const signo = tipo === 'Retiro' ? -1 : 1;
+    total += signo * monto;
+    porCat[cat] = (porCat[cat] || 0) + signo * monto;
+    if (m === mes) { if (signo > 0) mesDep += monto; else mesRet += monto; }
+  });
+  const mesNeto = mesDep - mesRet;
+
+  // Desglose por fondo
+  let fondos = '';
+  const cats = Object.entries(porCat).filter(([,v]) => v !== 0).sort((a,b) => b[1] - a[1]);
+  cats.forEach(([cat, val]) => {
+    const p = total > 0 ? Math.max(0, Math.round((val / total) * 100)) : 0;
+    const color = AHORRO_COLOR_MAP[cat] || '#5a7862';
+    fondos += `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${cat}</div>
+        <div style="height:3px;background:var(--surface2);border-radius:99px;">
+          <div style="height:3px;width:${Math.min(100,p)}%;background:${color};border-radius:99px;transition:width .4s;"></div>
+        </div>
+      </div>
+      <div style="text-align:right;margin-left:16px;">
+        <div style="font-family:var(--mono);font-size:13px;font-weight:500;color:${val < 0 ? 'var(--red)' : 'var(--text)'};">${fmtS(val)}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);">${p}%</div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = `
+    <div class="res-aho-grid">
+      <div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-lbl">TOTAL AHORRADO</div>
+          <div class="metric-val" style="color:var(--amber);">${fmt(total)}</div>
+          <div class="metric-sub">histórico</div>
+        </div>
+        <div class="metric">
+          <div class="metric-lbl">AHORRO DEL MES</div>
+          <div class="metric-val" style="color:${mesNeto >= 0 ? 'var(--green)' : 'var(--red)'};">${fmtS(mesNeto)}</div>
+          <div class="metric-sub">${mes}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-lbl">DEPOSITADO</div>
+          <div class="metric-val" style="color:var(--green);">${fmt(mesDep)}</div>
+          <div class="metric-sub">este mes</div>
+        </div>
+        <div class="metric">
+          <div class="metric-lbl">RETIRADO</div>
+          <div class="metric-val" style="color:var(--red);">${fmt(mesRet)}</div>
+          <div class="metric-sub">este mes</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Por fondo</div>
+        ${fondos || '<div class="empty-state" style="padding:16px 0;">Sin fondos con saldo</div>'}
+      </div>
+    </div>
+  `;
 }
 
 // ── Notion API ──
