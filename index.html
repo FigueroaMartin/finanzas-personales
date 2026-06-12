@@ -1895,6 +1895,32 @@ function renderResumen({ ingreso, ahorro, totalGastado, libre, catTotals, txList
   });
 }
 
+// Convierte "Junio 2026" → número ordenable (año*12 + índice de mes)
+const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function mesAOrden(str) {
+  const partes = (str || '').trim().split(' ');
+  const mi = MESES_NOMBRE.indexOf(partes[0]);
+  const yr = parseInt(partes[1]) || 0;
+  return mi < 0 ? -1 : yr * 12 + mi;
+}
+
+// Agrega al <select> todos los meses con datos (retroactivo) y reordena
+function poblarMesesRetroactivo(selId, rentasPages, ahorroPages) {
+  const sel = document.getElementById(selId);
+  const seleccion = sel.value;
+  const existentes = new Set(Array.from(sel.options).map(o => o.value));
+  const nuevos = new Set();
+  rentasPages.forEach(p => { const m = p.properties['Mes']?.title?.[0]?.plain_text; if (m && !existentes.has(m)) nuevos.add(m); });
+  ahorroPages.forEach(p => { const m = p.properties['Mes']?.rich_text?.[0]?.plain_text; if (m && !existentes.has(m)) nuevos.add(m); });
+  nuevos.forEach(m => {
+    const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o);
+  });
+  const opts = Array.from(sel.options).sort((a, b) => mesAOrden(b.value) - mesAOrden(a.value));
+  sel.innerHTML = '';
+  opts.forEach(o => sel.appendChild(o));
+  sel.value = seleccion;
+}
+
 // ── Resumen de ahorro (vista propia) ──
 async function cargarResumenAhorro() {
   const el = document.getElementById('res-aho-body');
@@ -1905,7 +1931,10 @@ async function cargarResumenAhorro() {
       consultarDB(DS_AHORRO),
       consultarDB(DS_MENSUAL),
     ]);
-    renderResumenAhorro(ahorroData.results || [], rentasData.results || [], document.getElementById('resaho-mes-sel').value);
+    const ahorroPages = ahorroData.results || [];
+    const rentasPages = rentasData.results || [];
+    poblarMesesRetroactivo('resaho-mes-sel', rentasPages, ahorroPages);
+    renderResumenAhorro(ahorroPages, rentasPages, document.getElementById('resaho-mes-sel').value);
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="big">⚠️</div>Error al cargar: ${e.message}</div>`;
   }
