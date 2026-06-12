@@ -945,11 +945,12 @@ const CATS_AHORRO = [
   { key: '📦 Otros',      color: 'green'  },
 ];
 const AHORRO_COLOR_MAP = {
-  '🏦 Emergencia': '#3b82f6',
-  '📈 Inversión':  '#22c55e',
-  '✈️ Viajes':     '#a855f7',
-  '🎯 Metas':      '#f59e0b',
-  '📦 Otros':      '#5a7862',
+  '🏦 Emergencia':           '#3b82f6',
+  '📈 Inversión':            '#22c55e',
+  '✈️ Viajes':               '#a855f7',
+  '🎯 Metas':                '#f59e0b',
+  '📦 Otros':                '#5a7862',
+  '💵 Automático (rentas)':  '#34e873',
 };
 
 // Mapa de nombre de categoría → color hex para los gráficos
@@ -1900,19 +1901,34 @@ async function cargarResumenAhorro() {
   el.innerHTML = '<div class="empty-state" style="padding:20px 0;"><span class="spin" style="font-size:20px;display:inline-block;">⟳</span></div>';
   mostrarGuardando(true);
   try {
-    const data = await consultarDB(DS_AHORRO);
-    renderResumenAhorro(data.results || [], document.getElementById('resaho-mes-sel').value);
+    const [ahorroData, rentasData] = await Promise.all([
+      consultarDB(DS_AHORRO),
+      consultarDB(DS_MENSUAL),
+    ]);
+    renderResumenAhorro(ahorroData.results || [], rentasData.results || [], document.getElementById('resaho-mes-sel').value);
   } catch(e) {
     el.innerHTML = `<div class="empty-state"><div class="big">⚠️</div>Error al cargar: ${e.message}</div>`;
   }
   mostrarGuardando(false);
 }
 
-function renderResumenAhorro(pages, mes) {
+function renderResumenAhorro(pages, rentasPages, mes) {
   const el = document.getElementById('res-aho-body');
   document.getElementById('res-aho-count').textContent = pages.length + ' movimiento' + (pages.length !== 1 ? 's' : '');
 
-  if (pages.length === 0) {
+  // Ahorro automático: 50% de cada renta subida en "Subir mes"
+  let autoTotal = 0, autoMes = 0;
+  rentasPages.forEach(page => {
+    const p     = page.properties;
+    const renta = (p['Renta Fija']?.number || 0) + (p['Freelance / Extra']?.number || 0) + (p['Otros Ingresos']?.number || 0);
+    const m     = p['Mes']?.title?.[0]?.plain_text || '';
+    autoTotal += renta * 0.5;
+    if (m === mes) autoMes += renta * 0.5;
+  });
+  autoTotal = Math.round(autoTotal);
+  autoMes   = Math.round(autoMes);
+
+  if (pages.length === 0 && autoTotal === 0) {
     el.innerHTML = '<div class="empty-state"><div class="big">💰</div>Sin movimientos de ahorro aún</div>';
     return;
   }
@@ -1937,8 +1953,12 @@ function renderResumenAhorro(pages, mes) {
       movsMes.push({ nom, monto, cat, fecha, signo });
     }
   });
-  const mesNeto = mesDep - mesRet;
+  const manualNeto = mesDep - mesRet;
+  const mesNeto    = autoMes + manualNeto;
+  total += autoTotal;
+  if (autoTotal > 0) porCat['💵 Automático (rentas)'] = autoTotal;
   movsMes.sort((a, b) => b.fecha.localeCompare(a.fecha));
+  if (autoMes > 0) movsMes.unshift({ nom: 'Ahorro automático', monto: autoMes, cat: '💵 Automático (rentas)', fecha: '', signo: 1 });
 
   // Desglose por fondo
   let fondos = '';
@@ -1991,14 +2011,14 @@ function renderResumenAhorro(pages, mes) {
             <div class="metric-sub">${mes}</div>
           </div>
           <div class="metric">
-            <div class="metric-lbl">DEPOSITADO</div>
-            <div class="metric-val" style="color:var(--green);">${fmt(mesDep)}</div>
-            <div class="metric-sub">este mes</div>
+            <div class="metric-lbl">AUTOMÁTICO</div>
+            <div class="metric-val" style="color:var(--green);">${fmt(autoMes)}</div>
+            <div class="metric-sub">50% de rentas · este mes</div>
           </div>
           <div class="metric">
-            <div class="metric-lbl">RETIRADO</div>
-            <div class="metric-val" style="color:var(--red);">${fmt(mesRet)}</div>
-            <div class="metric-sub">este mes</div>
+            <div class="metric-lbl">MANUAL</div>
+            <div class="metric-val" style="color:${manualNeto >= 0 ? 'var(--green)' : 'var(--red)'};">${fmtS(manualNeto)}</div>
+            <div class="metric-sub">depósitos − retiros · mes</div>
           </div>
         </div>
         <div style="margin-top:18px;">
