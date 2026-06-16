@@ -361,6 +361,42 @@
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
+  /* ── LOGIN GATE ── */
+  #auth-gate {
+    position: fixed; inset: 0; z-index: 2000;
+    background: #070d09;
+    background-image: radial-gradient(ellipse 80% 50% at 50% 0%, #0d2915 0%, transparent 70%);
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  #auth-gate.show { display: flex; }
+  .auth-box {
+    width: 100%; max-width: 360px; text-align: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 36px 28px; box-shadow: var(--shadow);
+  }
+  .auth-icon { font-size: 40px; margin-bottom: 14px; }
+  .auth-title {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--text) 40%, var(--green) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .auth-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 22px; }
+  .auth-input {
+    width: 100%; font-family: var(--mono); font-size: 14px; text-align: center;
+    padding: 12px 14px; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); color: var(--text); transition: border-color .2s, box-shadow .2s;
+  }
+  .auth-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
+  .auth-error { font-family: var(--mono); font-size: 11px; color: var(--red); min-height: 16px; margin: 8px 0 4px; }
+  .auth-btn {
+    width: 100%; font-family: var(--sans); font-size: 14px; font-weight: 700;
+    padding: 13px; border-radius: var(--radius-sm); border: none;
+    background: var(--green); color: #021206; cursor: pointer; transition: opacity .15s, transform .1s;
+  }
+  .auth-btn:hover { opacity: .9; }
+  .auth-btn:active { transform: scale(.98); }
+  .auth-btn:disabled { opacity: .5; cursor: default; }
+
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
@@ -524,6 +560,18 @@
 </style>
 </head>
 <body>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="auth-gate">
+  <div class="auth-box">
+    <div class="auth-icon">🔒</div>
+    <div class="auth-title">Finanzas Personales</div>
+    <div class="auth-sub">Ingresa tu contraseña para continuar</div>
+    <input type="password" id="auth-input" class="auth-input" placeholder="Contraseña" onkeydown="authKeydown(event)" autocomplete="current-password" />
+    <div class="auth-error" id="auth-error"></div>
+    <button class="auth-btn" id="auth-btn" onclick="intentarLogin()">Entrar</button>
+  </div>
+</div>
 
 <div class="header">
   <div class="logo" onclick="volverHome()" style="cursor:pointer;">
@@ -898,6 +946,10 @@ const DS_DEUDAS  = 'feca9282-283e-4324-9d7b-68fba6f05cce';
 const DS_GASTOS  = '970d4c5f-b865-45ce-b5ba-20bf2883cd98';
 const DS_AHORRO  = 'a6d4d410-b3bd-48ff-8bc1-915f3b3be8ee';
 const WORKER_URL = 'https://finanzas-worker.martinfigueroaa.workers.dev';
+
+// ── Autenticación (contraseña compartida validada por el Worker) ──
+let AUTH_TOKEN = localStorage.getItem('finanzas_pass') || '';
+function authHeaders() { return { 'Content-Type': 'application/json', 'X-Auth-Token': AUTH_TOKEN }; }
 
 let deudas = [];
 let deudasCargadas = false;
@@ -2064,39 +2116,36 @@ function renderResumenAhorro(pages, rentasPages, mes) {
 }
 
 // ── Notion API ──
+async function apiFetch(path, body) {
+  const resp = await fetch(WORKER_URL + path, {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify(body),
+  });
+  if (resp.status === 401) {
+    AUTH_TOKEN = '';
+    localStorage.removeItem('finanzas_pass');
+    mostrarLogin();
+    throw new Error('Contraseña incorrecta o sesión expirada');
+  }
+  const data = await resp.json();
+  if (!resp.ok) { console.error('Notion error:', data); throw new Error(data.message || 'Error Notion'); }
+  return data;
+}
+
 async function crearPagina(properties, parent) {
   const notionParent = parent.database_id
     ? { type: 'database_id', database_id: parent.database_id }
     : parent;
-  const resp = await fetch(WORKER_URL + '/notion/pages', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ parent: notionParent, properties }),
-  });
-  const data = await resp.json();
-  if (!resp.ok) { console.error('Notion error:', data); throw new Error(data.message||'Error Notion'); }
-  return data;
+  return apiFetch('/notion/pages', { parent: notionParent, properties });
 }
 
 async function actualizarPagina(page_id, properties, archivar = false) {
   const body = { page_id, properties };
   if (archivar) body.archived = true;
-  const resp = await fetch(WORKER_URL + '/notion/update', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await resp.json();
-  if (!resp.ok) { console.error('Notion update error:', data); throw new Error(data.message||'Error Notion'); }
-  return data;
+  return apiFetch('/notion/update', body);
 }
 
 async function consultarDB(database_id, filter) {
-  const resp = await fetch(WORKER_URL + '/notion/query', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ database_id, filter }),
-  });
-  const data = await resp.json();
-  if (!resp.ok) throw new Error(data.message||'Error Notion');
-  return data;
+  return apiFetch('/notion/query', { database_id, filter });
 }
 
 // ── Generar opciones de mes dinámicamente ──
@@ -2122,12 +2171,51 @@ function poblarSelectoresMes() {
   });
 }
 
+// ── Login ──
+function mostrarLogin() {
+  document.getElementById('auth-gate').classList.add('show');
+  setTimeout(() => document.getElementById('auth-input').focus(), 100);
+}
+function cerrarLogin() {
+  document.getElementById('auth-gate').classList.remove('show');
+  document.getElementById('auth-error').textContent = '';
+}
+async function intentarLogin() {
+  const inp = document.getElementById('auth-input');
+  const val = inp.value.trim();
+  if (!val) { inp.focus(); return; }
+  const btn = document.getElementById('auth-btn');
+  btn.disabled = true; btn.textContent = 'Verificando…';
+  document.getElementById('auth-error').textContent = '';
+  AUTH_TOKEN = val;
+  try {
+    await consultarDB(DS_MENSUAL); // request autenticado de prueba
+    localStorage.setItem('finanzas_pass', val);
+    inp.value = '';
+    cerrarLogin();
+    toast('Sesión iniciada ✓');
+  } catch(e) {
+    AUTH_TOKEN = '';
+    document.getElementById('auth-error').textContent = 'Contraseña incorrecta';
+    inp.select();
+  }
+  btn.disabled = false; btn.textContent = 'Entrar';
+}
+function authKeydown(e) { if (e.key === 'Enter') intentarLogin(); }
+function cerrarSesion() {
+  AUTH_TOKEN = '';
+  localStorage.removeItem('finanzas_pass');
+  volverHome();
+  mostrarLogin();
+}
+
 // ── Init ──
 poblarSelectoresMes();
 renderCats();
 renderCatsAhorro();
 renderGastos();
 recalcMes();
+if (!AUTH_TOKEN) mostrarLogin();
 </script>
 </body>
 </html>
