@@ -1001,20 +1001,21 @@ const CAT_COLORS = {
 
 // Categorías de ahorro (fondos)
 const CATS_AHORRO = [
-  { key: '🏦 Emergencia', color: 'blue'   },
-  { key: '📈 Inversión',  color: 'green'  },
-  { key: '✈️ Viajes',     color: 'purple' },
-  { key: '🎯 Metas',      color: 'amber'  },
-  { key: '📦 Otros',      color: 'green'  },
+  { key: '🏦 Emergencia',           color: 'blue'   },
+  { key: '📈 Inversión',            color: 'green'  },
+  { key: '💼 Fondo de oportunidad', color: 'amber'  },
+  { key: '✈️ Viajes',               color: 'purple' },
+  { key: '🎯 Metas',                color: 'amber'  },
+  { key: '📦 Otros',                color: 'green'  },
 ];
 const AHORRO_COLOR_MAP = {
   '🏦 Emergencia':           '#3b82f6',
   '📈 Inversión':            '#22c55e',
   '✈️ Viajes':               '#a855f7',
   '🎯 Metas':                '#f59e0b',
+  '💼 Fondo de oportunidad': '#eab308',
   '📦 Otros':                '#5a7862',
-  '💵 General':              '#fbbf24',
-  '💵 Automático (rentas)':  '#34e873',
+  '💵 General':              '#34e873',
 };
 
 // Mapa de nombre de categoría → color hex para los gráficos
@@ -1695,10 +1696,10 @@ async function cargarAhorro() {
     // Sumar el ahorro automático (50% rentas) al total general
     total    += autoTotal;
     totalDep += autoTotal;
-    if (autoTotal > 0) porCat['💵 Automático (rentas)'] = (porCat['💵 Automático (rentas)'] || 0) + autoTotal;
+    if (autoTotal > 0) porCat['💵 General'] = (porCat['💵 General'] || 0) + autoTotal;
     ahorroTotalCache = total;
     movs.sort((a, b) => b.fecha.localeCompare(a.fecha));
-    if (autoTotal > 0) movs.unshift({ nom: 'Ahorro automático (50% rentas)', monto: autoTotal, tipo: 'Depósito', cat: '💵 Automático (rentas)', fecha: '', signo: 1 });
+    if (autoTotal > 0) movs.unshift({ nom: 'Ahorro automático (50% rentas)', monto: autoTotal, tipo: 'Depósito', cat: '💵 General', fecha: '', signo: 1 });
 
     // Hero + KPIs
     let html = `
@@ -2088,9 +2089,9 @@ function renderResumenAhorro(pages, rentasPages, mes) {
   const manualNeto = mesDep - mesRet;
   const mesNeto    = autoMes + manualNeto;
   total += autoTotal;
-  if (autoTotal > 0) porCat['💵 Automático (rentas)'] = autoTotal;
+  if (autoTotal > 0) porCat['💵 General'] = (porCat['💵 General'] || 0) + autoTotal;
   movsMes.sort((a, b) => b.fecha.localeCompare(a.fecha));
-  if (autoMes > 0) movsMes.unshift({ nom: 'Ahorro automático', monto: autoMes, cat: '💵 Automático (rentas)', fecha: '', signo: 1 });
+  if (autoMes > 0) movsMes.unshift({ nom: 'Ahorro automático', monto: autoMes, cat: '💵 General', fecha: '', signo: 1 });
 
   // Desglose por fondo
   let fondos = '';
