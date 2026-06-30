@@ -467,17 +467,18 @@
     .res-aho-grid .metrics-grid { margin-bottom: 0; }
   }
 
-  /* ── TOGGLE DEPÓSITO / RETIRO ── */
+  /* ── TOGGLE DEPÓSITO / RETIRO / ADMINISTRAR ── */
   .tipo-row { display: flex; gap: 6px; }
   .tipo-btn {
     flex: 1; font-family: var(--sans); font-size: 12px; font-weight: 700;
-    padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    padding: 10px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border);
     background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s;
-    text-align: center;
+    text-align: center; white-space: nowrap;
   }
   .tipo-btn:hover { border-color: var(--border2); color: var(--text); }
   .tipo-btn.active-dep { border-color: var(--green); background: var(--green-dim); color: var(--green); }
   .tipo-btn.active-ret { border-color: var(--red);   background: var(--red-dim);   color: var(--red);   }
+  .tipo-btn.active-gen { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
 
   /* ── VIEW TITLE (igual gradiente que home) ── */
   .view-title {
@@ -908,6 +909,15 @@
         <div class="tipo-row">
           <button class="tipo-btn active-dep" id="tipo-dep" onclick="setTipoAhorro('Depósito')">↓ Depósito</button>
           <button class="tipo-btn" id="tipo-ret" onclick="setTipoAhorro('Retiro')">↑ Retiro</button>
+          <button class="tipo-btn" id="tipo-gen" onclick="setTipoAhorro('General')">⚙️ Administrar</button>
+        </div>
+      </div>
+      <!-- Dirección del movimiento general (solo en Administrar) -->
+      <div class="field-wrap" id="gen-dir-wrap" style="display:none;">
+        <div class="field-label">ACCIÓN SOBRE EL TOTAL GENERAL <span style="color:var(--muted);text-transform:none;letter-spacing:0;">· sin fondo</span></div>
+        <div class="tipo-row">
+          <button class="tipo-btn active-dep" id="gen-add"  onclick="setDirGeneral('Depósito')">➕ Agregar</button>
+          <button class="tipo-btn" id="gen-quit" onclick="setDirGeneral('Retiro')">➖ Quitar</button>
         </div>
       </div>
       <div class="field-wrap">
@@ -922,7 +932,7 @@
         <div class="field-label">COMENTARIO (OPCIONAL)</div>
         <input class="gasto-input" type="text" id="ah-comentario" placeholder="Detalle adicional…" />
       </div>
-      <div class="cats-section">
+      <div class="cats-section" id="ahorro-cats-section">
         <div class="field-label" style="margin-bottom:10px;">FONDO / CATEGORÍA</div>
         <div class="gasto-cats" id="cats-ahorro-wrap"></div>
       </div>
@@ -958,6 +968,7 @@ let gastosLocales = [];
 let catActiva = null;
 let catAhorroActiva = null;
 let tipoAhorro = 'Depósito';
+let dirGeneral = 'Depósito';
 let ahorroTotalCache = 0;
 let chartDonut = null;
 let chartBars  = null;
@@ -1002,6 +1013,7 @@ const AHORRO_COLOR_MAP = {
   '✈️ Viajes':               '#a855f7',
   '🎯 Metas':                '#f59e0b',
   '📦 Otros':                '#5a7862',
+  '💵 General':              '#fbbf24',
   '💵 Automático (rentas)':  '#34e873',
 };
 
@@ -1576,18 +1588,36 @@ function setTipoAhorro(t) {
   tipoAhorro = t;
   document.getElementById('tipo-dep').className = 'tipo-btn' + (t === 'Depósito' ? ' active-dep' : '');
   document.getElementById('tipo-ret').className = 'tipo-btn' + (t === 'Retiro'   ? ' active-ret' : '');
-  const btn = document.getElementById('btn-ahorro');
-  btn.className = 'submit-btn ' + (t === 'Depósito' ? 'green' : 'red');
+  document.getElementById('tipo-gen').className = 'tipo-btn' + (t === 'General'  ? ' active-gen' : '');
+  const esGeneral = t === 'General';
+  // En modo Administrar: se oculta el fondo y aparece la dirección general
+  document.getElementById('ahorro-cats-section').style.display = esGeneral ? 'none' : '';
+  document.getElementById('gen-dir-wrap').style.display        = esGeneral ? '' : 'none';
+  actualizarBtnAhorro();
+}
+
+function setDirGeneral(d) {
+  dirGeneral = d;
+  document.getElementById('gen-add').className  = 'tipo-btn' + (d === 'Depósito' ? ' active-dep' : '');
+  document.getElementById('gen-quit').className = 'tipo-btn' + (d === 'Retiro'   ? ' active-ret' : '');
+  actualizarBtnAhorro();
+}
+
+function actualizarBtnAhorro() {
+  const dir = tipoAhorro === 'General' ? dirGeneral : tipoAhorro;
+  document.getElementById('btn-ahorro').className = 'submit-btn ' + (dir === 'Depósito' ? 'green' : 'red');
 }
 
 async function guardarAhorro() {
   const nombre     = document.getElementById('ah-nombre').value.trim();
   const monto      = +document.getElementById('ah-monto').value || 0;
   const comentario = document.getElementById('ah-comentario').value.trim();
-  if (!nombre)          { toast('Ingresa el concepto del movimiento', false); return; }
-  if (monto <= 0)       { toast('Ingresa un monto válido', false); return; }
-  if (!catAhorroActiva) { toast('Selecciona un fondo / categoría', false); return; }
-  if (tipoAhorro === 'Retiro' && monto > ahorroTotalCache) {
+  const esGeneral  = tipoAhorro === 'General';
+  const tipoReal   = esGeneral ? dirGeneral : tipoAhorro; // dirección efectiva (Depósito/Retiro)
+  if (!nombre)    { toast('Ingresa el concepto del movimiento', false); return; }
+  if (monto <= 0) { toast('Ingresa un monto válido', false); return; }
+  if (!esGeneral && !catAhorroActiva) { toast('Selecciona un fondo / categoría', false); return; }
+  if (tipoReal === 'Retiro' && monto > ahorroTotalCache) {
     toast(`El retiro (${fmt(monto)}) supera el total ahorrado (${fmt(ahorroTotalCache)})`, false);
     return;
   }
@@ -1595,16 +1625,18 @@ async function guardarAhorro() {
   const btn = document.getElementById('btn-ahorro');
   btn.disabled = true; btn.textContent = 'Guardando…'; mostrarGuardando(true);
   try {
-    await crearPagina({
+    const props = {
       'Movimiento': { title:     [{ text: { content: nombre } }] },
       'Monto':      { number:    monto },
-      'Tipo':       { select:    { name: tipoAhorro } },
-      'Categoría':  { select:    { name: catAhorroActiva } },
-      'Comentario': { rich_text: [{ text: { content: comentario || 'Sin comentario' } }] },
+      'Tipo':       { select:    { name: tipoReal } },
+      'Comentario': { rich_text: [{ text: { content: comentario || (esGeneral ? 'Movimiento general (sin fondo)' : 'Sin comentario') } }] },
       'Mes':        { rich_text: [{ text: { content: mesActualReal() } }] },
       'Fecha':      { date:      { start: new Date().toISOString().split('T')[0] } },
-    }, { database_id: DS_AHORRO });
-    toast(`${tipoAhorro} de ${fmt(monto)} guardado ✓`);
+    };
+    // En modo general NO se asigna categoría (queda como total no designado)
+    if (!esGeneral) props['Categoría'] = { select: { name: catAhorroActiva } };
+    await crearPagina(props, { database_id: DS_AHORRO });
+    toast(`${tipoReal}${esGeneral ? ' general' : ''} de ${fmt(monto)} guardado ✓`);
     document.getElementById('ah-nombre').value = '';
     document.getElementById('ah-monto').value  = '';
     document.getElementById('ah-comentario').value = '';
@@ -1620,11 +1652,24 @@ async function cargarAhorro() {
   const count = document.getElementById('ahorro-count');
   el.innerHTML = '<div class="empty-state" style="padding:20px 0;"><span class="spin" style="font-size:20px;display:inline-block;">⟳</span></div>';
   try {
-    const data  = await consultarDB(DS_AHORRO);
-    const pages = data.results || [];
+    const [data, rentasData] = await Promise.all([
+      consultarDB(DS_AHORRO),
+      consultarDB(DS_MENSUAL),
+    ]);
+    const pages       = data.results || [];
+    const rentasPages = rentasData.results || [];
     count.textContent = pages.length + ' movimiento' + (pages.length !== 1 ? 's' : '');
 
-    if (pages.length === 0) {
+    // Ahorro automático: 50% de todas las rentas registradas (no designado a fondo)
+    let autoTotal = 0;
+    rentasPages.forEach(page => {
+      const p = page.properties;
+      const renta = (p['Renta Fija']?.number || 0) + (p['Freelance / Extra']?.number || 0) + (p['Otros Ingresos']?.number || 0);
+      autoTotal += renta * 0.5;
+    });
+    autoTotal = Math.round(autoTotal);
+
+    if (pages.length === 0 && autoTotal === 0) {
       ahorroTotalCache = 0;
       el.innerHTML = '<div class="empty-state"><div class="big">💰</div>Aún no hay movimientos de ahorro<br>Registra tu primer depósito</div>';
       return;
@@ -1638,7 +1683,7 @@ async function cargarAhorro() {
       const p     = page.properties;
       const monto = p['Monto']?.number || 0;
       const tipo  = p['Tipo']?.select?.name || 'Depósito';
-      const cat   = p['Categoría']?.select?.name || '📦 Otros';
+      const cat   = p['Categoría']?.select?.name || '💵 General';
       const nom   = p['Movimiento']?.title?.[0]?.plain_text || '—';
       const fecha = p['Fecha']?.date?.start || '';
       const signo = tipo === 'Retiro' ? -1 : 1;
@@ -1647,8 +1692,13 @@ async function cargarAhorro() {
       porCat[cat] = (porCat[cat] || 0) + signo * monto;
       movs.push({ nom, monto, tipo, cat, fecha, signo });
     });
+    // Sumar el ahorro automático (50% rentas) al total general
+    total    += autoTotal;
+    totalDep += autoTotal;
+    if (autoTotal > 0) porCat['💵 Automático (rentas)'] = (porCat['💵 Automático (rentas)'] || 0) + autoTotal;
     ahorroTotalCache = total;
     movs.sort((a, b) => b.fecha.localeCompare(a.fecha));
+    if (autoTotal > 0) movs.unshift({ nom: 'Ahorro automático (50% rentas)', monto: autoTotal, tipo: 'Depósito', cat: '💵 Automático (rentas)', fecha: '', signo: 1 });
 
     // Hero + KPIs
     let html = `
@@ -2023,7 +2073,7 @@ function renderResumenAhorro(pages, rentasPages, mes) {
     const p     = page.properties;
     const monto = p['Monto']?.number || 0;
     const tipo  = p['Tipo']?.select?.name || 'Depósito';
-    const cat   = p['Categoría']?.select?.name || '📦 Otros';
+    const cat   = p['Categoría']?.select?.name || '💵 General';
     const m     = p['Mes']?.rich_text?.[0]?.plain_text || '';
     const nom   = p['Movimiento']?.title?.[0]?.plain_text || '—';
     const fecha = p['Fecha']?.date?.start || '';
