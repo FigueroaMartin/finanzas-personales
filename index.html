@@ -762,6 +762,10 @@
     <div class="card-title">Registrar gasto <span class="card-title-badge">→ Notion</span></div>
     <div class="gasto-form">
       <div class="field-wrap">
+        <div class="field-label">MES <span style="color:var(--muted);text-transform:none;letter-spacing:0;">· por defecto el actual</span></div>
+        <select class="month-pill" id="g-mes-sel" style="max-width:240px;"></select>
+      </div>
+      <div class="field-wrap">
         <div class="field-label">NOMBRE DEL GASTO</div>
         <input class="gasto-input" type="text" id="g-nombre" placeholder="ej: Almuerzo La Vega…" />
       </div>
@@ -1500,6 +1504,7 @@ async function registrarGasto() {
   const nombre     = document.getElementById('g-nombre').value.trim();
   const monto      = +document.getElementById('g-monto').value || 0;
   const comentario = document.getElementById('g-comentario').value.trim();
+  const mesGasto   = document.getElementById('g-mes-sel').value || mesActualReal();
   if (!nombre)    { toast('Ingresa el nombre del gasto', false); return; }
   if (!catActiva) { toast('Selecciona una categoría', false); return; }
   if (monto <= 0) { toast('Ingresa un monto válido', false); return; }
@@ -1511,7 +1516,7 @@ async function registrarGasto() {
       'Monto':     { number:    monto },
       'Categoría': { select:    { name: catActiva } },
       'Comentario':{ rich_text: [{ text: { content: comentario || 'Sin comentario' } }] },
-      'Mes':       { rich_text: [{ text: { content: mesActualReal() } }] },
+      'Mes':       { rich_text: [{ text: { content: mesGasto } }] },
       'Fecha':     { date:      { start: new Date().toISOString().split('T')[0] } },
     }, { database_id: DS_GASTOS });
     toast(`"${nombre}" guardado en Notion ✓`);
@@ -2149,7 +2154,7 @@ function poblarSelectoresMes() {
     opciones.push(MESES[d.getMonth()] + ' ' + d.getFullYear());
   }
   const actual = MESES[ahora.getMonth()] + ' ' + ahora.getFullYear();
-  ['mes-sel', 'res-mes-sel', 'resaho-mes-sel'].forEach(selId => {
+  ['mes-sel', 'res-mes-sel', 'resaho-mes-sel', 'g-mes-sel'].forEach(selId => {
     const sel = document.getElementById(selId);
     sel.innerHTML = '';
     opciones.forEach(op => {
