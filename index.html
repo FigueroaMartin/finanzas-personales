@@ -125,7 +125,16 @@
     #view-deuda.active  { grid-template-columns: minmax(0, 700px); justify-content: center; }
     #view-gasto.active  { grid-template-columns: 440px 1fr; gap: 24px; align-items: start; }
     #view-ahorro.active { grid-template-columns: 440px 1fr; gap: 24px; align-items: start; }
-    #view-resahorro.active { grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+    #view-resahorro.active {
+      grid-template-columns: 320px 1fr;
+      grid-template-areas: "ttl ttl" "sel body" "sel donut" "sel etf";
+      gap: 24px; align-items: start;
+    }
+    #view-resahorro .view-title { grid-area: ttl; margin-bottom: 0; }
+    #resaho-card-sel  { grid-area: sel; }
+    #resaho-card-body { grid-area: body; }
+    #aho-card-donut   { grid-area: donut; }
+    #aho-card-etf     { grid-area: etf; }
 
     #view-resumen.active {
       display: grid;
@@ -889,11 +898,29 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="resaho-card-body">
     <div class="card-title">Estado del ahorro <span class="card-title-badge" id="res-aho-count">— movimientos</span></div>
     <div id="res-aho-body">
       <div class="empty-state"><div class="big">💰</div>Cargando…</div>
     </div>
+  </div>
+
+  <!-- DONUT: distribución del ahorro por fondo -->
+  <div class="card" id="aho-card-donut">
+    <div class="card-title">Distribución del ahorro</div>
+    <div class="chart-donut-wrap">
+      <canvas id="chart-aho-donut"></canvas>
+    </div>
+    <div class="chart-legend" id="aho-donut-legend"></div>
+  </div>
+
+  <!-- DONUT: inversiones desglosadas por ETF -->
+  <div class="card" id="aho-card-etf" style="display:none;">
+    <div class="card-title">Inversiones por ETF</div>
+    <div class="chart-donut-wrap">
+      <canvas id="chart-aho-etf"></canvas>
+    </div>
+    <div class="chart-legend" id="aho-etf-legend"></div>
   </div>
 </div>
 
@@ -937,6 +964,11 @@
       <div class="cats-section" id="ahorro-cats-section">
         <div class="field-label" style="margin-bottom:10px;">FONDO / CATEGORÍA</div>
         <div class="gasto-cats" id="cats-ahorro-wrap"></div>
+        <!-- Sub-categoría ETF (solo visible si el fondo activo es 📈 Inversión) -->
+        <div id="etf-subcats-wrap" style="display:none;margin-top:12px;">
+          <div class="field-label" style="margin-bottom:8px;">ETF <span style="color:var(--muted);text-transform:none;letter-spacing:0;">· opcional</span></div>
+          <div class="gasto-cats" id="cats-etf-wrap"></div>
+        </div>
       </div>
       <button class="submit-btn green" onclick="guardarAhorro()" id="btn-ahorro" style="margin-top:16px;">Guardar movimiento ↑</button>
     </div>
@@ -969,11 +1001,14 @@ let nextId = 1;
 let gastosLocales = [];
 let catActiva = null;
 let catAhorroActiva = null;
+let subEtfActiva = null;
 let tipoAhorro = 'Depósito';
 let ahorroTotalCache = 0;
 let saldosFondos = {};
 let chartDonut = null;
 let chartBars  = null;
+let chartAhoDonut = null;
+let chartAhoEtf   = null;
 // mesActual → para "Subir mes" (usa el selector de esa vista)
 const mesActual = () => document.getElementById('mes-sel').value;
 // mesActualReal → mes del calendario real, usado en gastos y abonos
@@ -1018,6 +1053,15 @@ const AHORRO_COLOR_MAP = {
   '💼 Fondo de oportunidad': '#eab308',
   '📦 Otros':                '#5a7862',
   '💵 General':              '#34e873',
+};
+
+// Sub-categorías de ETF dentro del fondo 📈 Inversión
+const ETFS = ['SMH', 'SCHD', 'COPX'];
+const ETF_COLOR_MAP = {
+  'SMH':  '#3b82f6',
+  'SCHD': '#22c55e',
+  'COPX': '#f59e0b',
+  'Sin clasificar': '#5a7862',
 };
 
 // Mapa de nombre de categoría → color hex para los gráficos
@@ -1569,6 +1613,24 @@ function renderGastos() {
 // AHORRO
 // ════════════════════════════════════════════
 
+function renderCatsEtf() {
+  const wrap = document.getElementById('cats-etf-wrap');
+  wrap.innerHTML = '';
+  ETFS.forEach(etf => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn'; btn.dataset.color = 'green'; btn.textContent = etf;
+    btn.onclick = () => seleccionarSubEtf(etf);
+    wrap.appendChild(btn);
+  });
+}
+
+function seleccionarSubEtf(etf) {
+  subEtfActiva = subEtfActiva === etf ? null : etf; // click de nuevo deselecciona
+  document.querySelectorAll('#cats-etf-wrap .cat-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === subEtfActiva);
+  });
+}
+
 function renderCatsAhorro() {
   const wrap = document.getElementById('cats-ahorro-wrap');
   wrap.innerHTML = '';
@@ -1585,6 +1647,13 @@ function seleccionarCatAhorro(key) {
   document.querySelectorAll('#cats-ahorro-wrap .cat-btn').forEach(b => {
     b.classList.toggle('active', b.textContent === key);
   });
+  // El selector de ETF solo aplica al fondo de Inversión
+  const esInversion = key === '📈 Inversión';
+  document.getElementById('etf-subcats-wrap').style.display = esInversion ? '' : 'none';
+  if (!esInversion) {
+    subEtfActiva = null;
+    document.querySelectorAll('#cats-etf-wrap .cat-btn').forEach(b => b.classList.remove('active'));
+  }
 }
 
 function setTipoAhorro(t) {
@@ -1633,7 +1702,7 @@ async function guardarAhorro() {
   const btn = document.getElementById('btn-ahorro');
   btn.disabled = true; btn.textContent = 'Guardando…'; mostrarGuardando(true);
   try {
-    await crearPagina({
+    const props = {
       'Movimiento': { title:     [{ text: { content: nombre } }] },
       'Monto':      { number:    monto },
       'Tipo':       { select:    { name: tipoAhorro } },
@@ -1641,13 +1710,21 @@ async function guardarAhorro() {
       'Comentario': { rich_text: [{ text: { content: comentario || 'Sin comentario' } }] },
       'Mes':        { rich_text: [{ text: { content: mesActualReal() } }] },
       'Fecha':      { date:      { start: new Date().toISOString().split('T')[0] } },
-    }, { database_id: DS_AHORRO });
+    };
+    // Sub-categoría ETF: solo aplica al fondo de Inversión y es opcional
+    if (catAhorroActiva === '📈 Inversión' && subEtfActiva) {
+      props['Subcategoría'] = { select: { name: subEtfActiva } };
+    }
+    await crearPagina(props, { database_id: DS_AHORRO });
     toast(`${tipoAhorro} de ${fmt(monto)} guardado ✓`);
     document.getElementById('ah-nombre').value = '';
     document.getElementById('ah-monto').value  = '';
     document.getElementById('ah-comentario').value = '';
     catAhorroActiva = null;
+    subEtfActiva = null;
     document.querySelectorAll('#cats-ahorro-wrap .cat-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#cats-etf-wrap .cat-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('etf-subcats-wrap').style.display = 'none';
     cargarAhorro();
   } catch(e) { toast(`Error al guardar: ${e.message || 'revisa la conexión'}`, false); }
   btn.disabled = false; btn.textContent = 'Guardar movimiento ↑'; mostrarGuardando(false);
@@ -2090,6 +2167,9 @@ function renderResumenAhorro(pages, rentasPages, mes) {
 
   if (pages.length === 0) {
     el.innerHTML = '<div class="empty-state"><div class="big">💰</div>Sin movimientos de ahorro aún</div>';
+    document.getElementById('aho-card-etf').style.display = 'none';
+    if (chartAhoDonut) { chartAhoDonut.destroy(); chartAhoDonut = null; }
+    if (chartAhoEtf)   { chartAhoEtf.destroy();   chartAhoEtf   = null; }
     return;
   }
 
@@ -2188,6 +2268,109 @@ function renderResumenAhorro(pages, rentasPages, mes) {
       </div>
     </div>
   `;
+
+  // ── Donut: distribución del ahorro por fondo ──
+  const fondoLabels = [], fondoData = [], fondoColors = [];
+  cats.forEach(([cat, val]) => {
+    if (val <= 0) return; // el donut solo grafica saldos positivos
+    fondoLabels.push(cat);
+    fondoData.push(val);
+    fondoColors.push(AHORRO_COLOR_MAP[cat] || '#5a7862');
+  });
+  const totalFondoDonut = fondoData.reduce((a, b) => a + b, 0) || 1;
+
+  if (chartAhoDonut) chartAhoDonut.destroy();
+  chartAhoDonut = new Chart(document.getElementById('chart-aho-donut'), {
+    type: 'doughnut',
+    data: { labels: fondoLabels, datasets: [{ data: fondoData, backgroundColor: fondoColors, borderColor: '#0e0f11', borderWidth: 3, hoverBorderWidth: 3 }] },
+    options: {
+      cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${fmt(ctx.raw)}  (${Math.round(ctx.raw / totalFondoDonut * 100)}%)` },
+          backgroundColor: '#1e2026', borderColor: '#353840', borderWidth: 1,
+          titleColor: '#f0f1f3', bodyColor: '#6b7280', padding: 10,
+        },
+      },
+    },
+  });
+
+  const fondoLegend = document.getElementById('aho-donut-legend');
+  fondoLegend.innerHTML = '';
+  fondoLabels.forEach((lbl, i) => {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    const p = Math.round(fondoData[i] / totalFondoDonut * 100);
+    row.innerHTML = `
+      <div class="legend-left">
+        <div class="legend-dot" style="background:${fondoColors[i]};"></div>
+        <span class="legend-name">${lbl}</span>
+        <span class="legend-pct">${p}%</span>
+      </div>
+      <span class="legend-val">${fmt(fondoData[i])}</span>
+    `;
+    fondoLegend.appendChild(row);
+  });
+
+  // ── Donut: inversiones desglosadas por ETF (sub-categoría) ──
+  const etfCard = document.getElementById('aho-card-etf');
+  const porEtf = {};
+  pages.forEach(page => {
+    const p = page.properties;
+    if (p['Categoría']?.select?.name !== '📈 Inversión') return;
+    const monto = p['Monto']?.number || 0;
+    const tipo  = p['Tipo']?.select?.name || 'Depósito';
+    const etf   = p['Subcategoría']?.select?.name || 'Sin clasificar';
+    const signo = tipo === 'Retiro' ? -1 : 1;
+    porEtf[etf] = (porEtf[etf] || 0) + signo * monto;
+  });
+  const etfEntries = Object.entries(porEtf).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+
+  if (etfEntries.length === 0) {
+    etfCard.style.display = 'none';
+    if (chartAhoEtf) { chartAhoEtf.destroy(); chartAhoEtf = null; }
+  } else {
+    etfCard.style.display = '';
+    const etfLabels = etfEntries.map(([k]) => k);
+    const etfData   = etfEntries.map(([, v]) => v);
+    const etfColors = etfLabels.map(k => ETF_COLOR_MAP[k] || '#5a7862');
+    const totalEtfDonut = etfData.reduce((a, b) => a + b, 0) || 1;
+
+    if (chartAhoEtf) chartAhoEtf.destroy();
+    chartAhoEtf = new Chart(document.getElementById('chart-aho-etf'), {
+      type: 'doughnut',
+      data: { labels: etfLabels, datasets: [{ data: etfData, backgroundColor: etfColors, borderColor: '#0e0f11', borderWidth: 3, hoverBorderWidth: 3 }] },
+      options: {
+        cutout: '70%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: ctx => ` ${fmt(ctx.raw)}  (${Math.round(ctx.raw / totalEtfDonut * 100)}%)` },
+            backgroundColor: '#1e2026', borderColor: '#353840', borderWidth: 1,
+            titleColor: '#f0f1f3', bodyColor: '#6b7280', padding: 10,
+          },
+        },
+      },
+    });
+
+    const etfLegend = document.getElementById('aho-etf-legend');
+    etfLegend.innerHTML = '';
+    etfLabels.forEach((lbl, i) => {
+      const row = document.createElement('div');
+      row.className = 'legend-row';
+      const p = Math.round(etfData[i] / totalEtfDonut * 100);
+      row.innerHTML = `
+        <div class="legend-left">
+          <div class="legend-dot" style="background:${etfColors[i]};"></div>
+          <span class="legend-name">${lbl}</span>
+          <span class="legend-pct">${p}%</span>
+        </div>
+        <span class="legend-val">${fmt(etfData[i])}</span>
+      `;
+      etfLegend.appendChild(row);
+    });
+  }
 }
 
 // ── Notion API ──
@@ -2274,6 +2457,7 @@ function cerrarSesion() {
 poblarSelectoresMes();
 renderCats();
 renderCatsAhorro();
+renderCatsEtf();
 poblarTransferSelects();
 renderGastos();
 recalcMes();
