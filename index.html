@@ -236,6 +236,7 @@
   .submit-btn.red    { background: var(--red);    color: #fff; }
   .submit-btn.blue   { background: var(--blue);   color: #fff; }
   .submit-btn.purple { background: var(--purple); color: #fff; }
+  .submit-btn.amber  { background: var(--amber);  color: #1a1205; }
 
   /* ── DEUDAS ── */
   .deuda-item {
@@ -909,15 +910,16 @@
         <div class="tipo-row">
           <button class="tipo-btn active-dep" id="tipo-dep" onclick="setTipoAhorro('Depósito')">↓ Depósito</button>
           <button class="tipo-btn" id="tipo-ret" onclick="setTipoAhorro('Retiro')">↑ Retiro</button>
-          <button class="tipo-btn" id="tipo-gen" onclick="setTipoAhorro('General')">⚙️ Administrar</button>
+          <button class="tipo-btn" id="tipo-gen" onclick="setTipoAhorro('Transfer')">⚙️ Administrar</button>
         </div>
       </div>
-      <!-- Dirección del movimiento general (solo en Administrar) -->
-      <div class="field-wrap" id="gen-dir-wrap" style="display:none;">
-        <div class="field-label">ACCIÓN SOBRE EL TOTAL GENERAL <span style="color:var(--muted);text-transform:none;letter-spacing:0;">· sin fondo</span></div>
-        <div class="tipo-row">
-          <button class="tipo-btn active-dep" id="gen-add"  onclick="setDirGeneral('Depósito')">➕ Agregar</button>
-          <button class="tipo-btn" id="gen-quit" onclick="setDirGeneral('Retiro')">➖ Quitar</button>
+      <!-- Mover fondos (modo Administrar): transferencia entre fondos -->
+      <div class="field-wrap" id="transfer-wrap" style="display:none;">
+        <div class="field-label">MOVER FONDOS <span style="color:var(--muted);text-transform:none;letter-spacing:0;">· de un fondo a otro</span></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <select class="month-pill" id="transfer-from" style="flex:1;"></select>
+          <span style="color:var(--amber);font-size:18px;flex-shrink:0;">→</span>
+          <select class="month-pill" id="transfer-to" style="flex:1;"></select>
         </div>
       </div>
       <div class="field-wrap">
@@ -968,8 +970,8 @@ let gastosLocales = [];
 let catActiva = null;
 let catAhorroActiva = null;
 let tipoAhorro = 'Depósito';
-let dirGeneral = 'Depósito';
 let ahorroTotalCache = 0;
+let saldosFondos = {};
 let chartDonut = null;
 let chartBars  = null;
 // mesActual → para "Subir mes" (usa el selector de esa vista)
@@ -1589,55 +1591,58 @@ function setTipoAhorro(t) {
   tipoAhorro = t;
   document.getElementById('tipo-dep').className = 'tipo-btn' + (t === 'Depósito' ? ' active-dep' : '');
   document.getElementById('tipo-ret').className = 'tipo-btn' + (t === 'Retiro'   ? ' active-ret' : '');
-  document.getElementById('tipo-gen').className = 'tipo-btn' + (t === 'General'  ? ' active-gen' : '');
-  const esGeneral = t === 'General';
-  // En modo Administrar: se oculta el fondo y aparece la dirección general
-  document.getElementById('ahorro-cats-section').style.display = esGeneral ? 'none' : '';
-  document.getElementById('gen-dir-wrap').style.display        = esGeneral ? '' : 'none';
-  actualizarBtnAhorro();
+  document.getElementById('tipo-gen').className = 'tipo-btn' + (t === 'Transfer' ? ' active-gen' : '');
+  const esTransfer = t === 'Transfer';
+  // Modo Administrar = mover fondos: oculta el fondo único y muestra origen → destino
+  document.getElementById('ahorro-cats-section').style.display = esTransfer ? 'none' : '';
+  document.getElementById('transfer-wrap').style.display       = esTransfer ? '' : 'none';
+  const btn = document.getElementById('btn-ahorro');
+  if (esTransfer) {
+    btn.className = 'submit-btn amber';
+    btn.textContent = 'Mover fondos ⇄';
+  } else {
+    btn.className = 'submit-btn ' + (t === 'Depósito' ? 'green' : 'red');
+    btn.textContent = 'Guardar movimiento ↑';
+  }
 }
 
-function setDirGeneral(d) {
-  dirGeneral = d;
-  document.getElementById('gen-add').className  = 'tipo-btn' + (d === 'Depósito' ? ' active-dep' : '');
-  document.getElementById('gen-quit').className = 'tipo-btn' + (d === 'Retiro'   ? ' active-ret' : '');
-  actualizarBtnAhorro();
-}
-
-function actualizarBtnAhorro() {
-  const dir = tipoAhorro === 'General' ? dirGeneral : tipoAhorro;
-  document.getElementById('btn-ahorro').className = 'submit-btn ' + (dir === 'Depósito' ? 'green' : 'red');
+function poblarTransferSelects() {
+  const fondos = [...CATS_AHORRO.map(c => c.key), '💵 General'];
+  ['transfer-from', 'transfer-to'].forEach((id, idx) => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    fondos.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = f; sel.appendChild(o); });
+    sel.selectedIndex = Math.min(idx, fondos.length - 1);
+  });
 }
 
 async function guardarAhorro() {
+  if (tipoAhorro === 'Transfer') return moverFondos();
+
   const nombre     = document.getElementById('ah-nombre').value.trim();
   const monto      = +document.getElementById('ah-monto').value || 0;
   const comentario = document.getElementById('ah-comentario').value.trim();
-  const esGeneral  = tipoAhorro === 'General';
-  const tipoReal   = esGeneral ? dirGeneral : tipoAhorro; // dirección efectiva (Depósito/Retiro)
-  if (!nombre)    { toast('Ingresa el concepto del movimiento', false); return; }
-  if (monto <= 0) { toast('Ingresa un monto válido', false); return; }
-  if (!esGeneral && !catAhorroActiva) { toast('Selecciona un fondo / categoría', false); return; }
-  if (tipoReal === 'Retiro' && monto > ahorroTotalCache) {
-    toast(`El retiro (${fmt(monto)}) supera el total ahorrado (${fmt(ahorroTotalCache)})`, false);
+  if (!nombre)          { toast('Ingresa el concepto del movimiento', false); return; }
+  if (monto <= 0)       { toast('Ingresa un monto válido', false); return; }
+  if (!catAhorroActiva) { toast('Selecciona un fondo / categoría', false); return; }
+  if (tipoAhorro === 'Retiro' && monto > (saldosFondos[catAhorroActiva] || 0)) {
+    toast(`No hay saldo suficiente en ${catAhorroActiva} (${fmt(saldosFondos[catAhorroActiva] || 0)})`, false);
     return;
   }
 
   const btn = document.getElementById('btn-ahorro');
   btn.disabled = true; btn.textContent = 'Guardando…'; mostrarGuardando(true);
   try {
-    const props = {
+    await crearPagina({
       'Movimiento': { title:     [{ text: { content: nombre } }] },
       'Monto':      { number:    monto },
-      'Tipo':       { select:    { name: tipoReal } },
-      'Comentario': { rich_text: [{ text: { content: comentario || (esGeneral ? 'Movimiento general (sin fondo)' : 'Sin comentario') } }] },
+      'Tipo':       { select:    { name: tipoAhorro } },
+      'Categoría':  { select:    { name: catAhorroActiva } },
+      'Comentario': { rich_text: [{ text: { content: comentario || 'Sin comentario' } }] },
       'Mes':        { rich_text: [{ text: { content: mesActualReal() } }] },
       'Fecha':      { date:      { start: new Date().toISOString().split('T')[0] } },
-    };
-    // En modo general NO se asigna categoría (queda como total no designado)
-    if (!esGeneral) props['Categoría'] = { select: { name: catAhorroActiva } };
-    await crearPagina(props, { database_id: DS_AHORRO });
-    toast(`${tipoReal}${esGeneral ? ' general' : ''} de ${fmt(monto)} guardado ✓`);
+    }, { database_id: DS_AHORRO });
+    toast(`${tipoAhorro} de ${fmt(monto)} guardado ✓`);
     document.getElementById('ah-nombre').value = '';
     document.getElementById('ah-monto').value  = '';
     document.getElementById('ah-comentario').value = '';
@@ -1648,30 +1653,68 @@ async function guardarAhorro() {
   btn.disabled = false; btn.textContent = 'Guardar movimiento ↑'; mostrarGuardando(false);
 }
 
+// Mover saldo de un fondo a otro (genera un Retiro en el origen + un Depósito en el destino)
+async function moverFondos() {
+  const nombre     = document.getElementById('ah-nombre').value.trim();
+  const monto      = +document.getElementById('ah-monto').value || 0;
+  const comentario = document.getElementById('ah-comentario').value.trim();
+  const origen     = document.getElementById('transfer-from').value;
+  const destino    = document.getElementById('transfer-to').value;
+  if (monto <= 0)         { toast('Ingresa un monto válido', false); return; }
+  if (origen === destino) { toast('El origen y el destino deben ser distintos', false); return; }
+  const saldoOrigen = saldosFondos[origen] || 0;
+  if (monto > saldoOrigen) { toast(`No hay saldo suficiente en ${origen} (${fmt(saldoOrigen)})`, false); return; }
+
+  const btn = document.getElementById('btn-ahorro');
+  btn.disabled = true; btn.textContent = 'Moviendo…'; mostrarGuardando(true);
+  const concepto = nombre || `Transferencia: ${origen} → ${destino}`;
+  const fecha = new Date().toISOString().split('T')[0];
+  const mes   = mesActualReal();
+  const extra = comentario ? comentario + ' · ' : '';
+  try {
+    // 1. Retiro del fondo origen
+    const propRet = {
+      'Movimiento': { title:     [{ text: { content: concepto } }] },
+      'Monto':      { number:    monto },
+      'Tipo':       { select:    { name: 'Retiro' } },
+      'Comentario': { rich_text: [{ text: { content: extra + `Movido a ${destino}` } }] },
+      'Mes':        { rich_text: [{ text: { content: mes } }] },
+      'Fecha':      { date:      { start: fecha } },
+    };
+    if (origen !== '💵 General') propRet['Categoría'] = { select: { name: origen } };
+    await crearPagina(propRet, { database_id: DS_AHORRO });
+    // 2. Depósito al fondo destino
+    const propDep = {
+      'Movimiento': { title:     [{ text: { content: concepto } }] },
+      'Monto':      { number:    monto },
+      'Tipo':       { select:    { name: 'Depósito' } },
+      'Comentario': { rich_text: [{ text: { content: extra + `Recibido de ${origen}` } }] },
+      'Mes':        { rich_text: [{ text: { content: mes } }] },
+      'Fecha':      { date:      { start: fecha } },
+    };
+    if (destino !== '💵 General') propDep['Categoría'] = { select: { name: destino } };
+    await crearPagina(propDep, { database_id: DS_AHORRO });
+    toast(`Moviste ${fmt(monto)}: ${origen} → ${destino} ✓`);
+    document.getElementById('ah-nombre').value = '';
+    document.getElementById('ah-monto').value  = '';
+    document.getElementById('ah-comentario').value = '';
+    cargarAhorro();
+  } catch(e) { toast(`Error al mover: ${e.message || 'revisa la conexión'}`, false); }
+  btn.disabled = false; btn.textContent = 'Mover fondos ⇄'; mostrarGuardando(false);
+}
+
 async function cargarAhorro() {
   const el    = document.getElementById('ahorro-resumen');
   const count = document.getElementById('ahorro-count');
   el.innerHTML = '<div class="empty-state" style="padding:20px 0;"><span class="spin" style="font-size:20px;display:inline-block;">⟳</span></div>';
   try {
-    const [data, rentasData] = await Promise.all([
-      consultarDB(DS_AHORRO),
-      consultarDB(DS_MENSUAL),
-    ]);
-    const pages       = data.results || [];
-    const rentasPages = rentasData.results || [];
+    const data  = await consultarDB(DS_AHORRO);
+    const pages = data.results || [];
     count.textContent = pages.length + ' movimiento' + (pages.length !== 1 ? 's' : '');
 
-    // Ahorro automático: 50% de todas las rentas registradas (no designado a fondo)
-    let autoTotal = 0;
-    rentasPages.forEach(page => {
-      const p = page.properties;
-      const renta = (p['Renta Fija']?.number || 0) + (p['Freelance / Extra']?.number || 0) + (p['Otros Ingresos']?.number || 0);
-      autoTotal += renta * 0.5;
-    });
-    autoTotal = Math.round(autoTotal);
-
-    if (pages.length === 0 && autoTotal === 0) {
+    if (pages.length === 0) {
       ahorroTotalCache = 0;
+      saldosFondos = {};
       el.innerHTML = '<div class="empty-state"><div class="big">💰</div>Aún no hay movimientos de ahorro<br>Registra tu primer depósito</div>';
       return;
     }
@@ -1693,13 +1736,9 @@ async function cargarAhorro() {
       porCat[cat] = (porCat[cat] || 0) + signo * monto;
       movs.push({ nom, monto, tipo, cat, fecha, signo });
     });
-    // Sumar el ahorro automático (50% rentas) al total general
-    total    += autoTotal;
-    totalDep += autoTotal;
-    if (autoTotal > 0) porCat['💵 General'] = (porCat['💵 General'] || 0) + autoTotal;
     ahorroTotalCache = total;
+    saldosFondos = { ...porCat };   // saldo disponible por fondo (para mover/retirar)
     movs.sort((a, b) => b.fecha.localeCompare(a.fecha));
-    if (autoTotal > 0) movs.unshift({ nom: 'Ahorro automático (50% rentas)', monto: autoTotal, tipo: 'Depósito', cat: '💵 General', fecha: '', signo: 1 });
 
     // Hero + KPIs
     let html = `
@@ -2049,19 +2088,7 @@ function renderResumenAhorro(pages, rentasPages, mes) {
   const el = document.getElementById('res-aho-body');
   document.getElementById('res-aho-count').textContent = pages.length + ' movimiento' + (pages.length !== 1 ? 's' : '');
 
-  // Ahorro automático: 50% de cada renta subida en "Subir mes"
-  let autoTotal = 0, autoMes = 0;
-  rentasPages.forEach(page => {
-    const p     = page.properties;
-    const renta = (p['Renta Fija']?.number || 0) + (p['Freelance / Extra']?.number || 0) + (p['Otros Ingresos']?.number || 0);
-    const m     = p['Mes']?.title?.[0]?.plain_text || '';
-    autoTotal += renta * 0.5;
-    if (m === mes) autoMes += renta * 0.5;
-  });
-  autoTotal = Math.round(autoTotal);
-  autoMes   = Math.round(autoMes);
-
-  if (pages.length === 0 && autoTotal === 0) {
+  if (pages.length === 0) {
     el.innerHTML = '<div class="empty-state"><div class="big">💰</div>Sin movimientos de ahorro aún</div>';
     return;
   }
@@ -2086,12 +2113,8 @@ function renderResumenAhorro(pages, rentasPages, mes) {
       movsMes.push({ nom, monto, cat, fecha, signo });
     }
   });
-  const manualNeto = mesDep - mesRet;
-  const mesNeto    = autoMes + manualNeto;
-  total += autoTotal;
-  if (autoTotal > 0) porCat['💵 General'] = (porCat['💵 General'] || 0) + autoTotal;
+  const mesNeto = mesDep - mesRet;
   movsMes.sort((a, b) => b.fecha.localeCompare(a.fecha));
-  if (autoMes > 0) movsMes.unshift({ nom: 'Ahorro automático', monto: autoMes, cat: '💵 General', fecha: '', signo: 1 });
 
   // Desglose por fondo
   let fondos = '';
@@ -2144,14 +2167,14 @@ function renderResumenAhorro(pages, rentasPages, mes) {
             <div class="metric-sub">${mes}</div>
           </div>
           <div class="metric">
-            <div class="metric-lbl">AUTOMÁTICO</div>
-            <div class="metric-val" style="color:var(--green);">${fmt(autoMes)}</div>
-            <div class="metric-sub">50% de rentas · este mes</div>
+            <div class="metric-lbl">DEPOSITADO</div>
+            <div class="metric-val" style="color:var(--green);">${fmt(mesDep)}</div>
+            <div class="metric-sub">este mes</div>
           </div>
           <div class="metric">
-            <div class="metric-lbl">MANUAL</div>
-            <div class="metric-val" style="color:${manualNeto >= 0 ? 'var(--green)' : 'var(--red)'};">${fmtS(manualNeto)}</div>
-            <div class="metric-sub">depósitos − retiros · mes</div>
+            <div class="metric-lbl">RETIRADO</div>
+            <div class="metric-val" style="color:var(--red);">${fmt(mesRet)}</div>
+            <div class="metric-sub">este mes</div>
           </div>
         </div>
         <div style="margin-top:18px;">
@@ -2251,6 +2274,7 @@ function cerrarSesion() {
 poblarSelectoresMes();
 renderCats();
 renderCatsAhorro();
+poblarTransferSelects();
 renderGastos();
 recalcMes();
 if (localStorage.getItem('finanzas_logged') !== '1') mostrarLogin();
